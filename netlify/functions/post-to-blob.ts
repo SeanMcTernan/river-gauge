@@ -16,7 +16,7 @@ const handler: Handler = async (event, context) => {
             body: JSON.stringify({ message: "Post received" }),
         };
     }
-
+    console.log("I got a get");
     return {
         statusCode: 405,
         body: JSON.stringify({ message: "Method Not Allowed" }),
