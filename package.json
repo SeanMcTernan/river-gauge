@@ -2,10 +2,9 @@
     "name": "river-gauge",
     "version": "0.1.0",
     "private": true,
-    "scripts": {
-    },
+    "scripts": {},
     "dependencies": {
-    },
-    "devDependencies": {
+        "@netlify/functions": "^2.8.1",
+        "qs": "^6.13.0"
     }
-  }
+}
