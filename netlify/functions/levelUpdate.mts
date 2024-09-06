@@ -46,7 +46,7 @@ export default async (req: Request, context: Context) => {
 
         await levels.setJSON("latest", levelData);
         console.log(levelData);
-        return
+        return new Response(null, { status: 200 });
     }
     return new Response("Method Not Allowed");
 };
