@@ -1,6 +1,7 @@
 import type { Context } from "@netlify/functions";
 import qs from 'qs';
 import { getStore } from "@netlify/blobs";
+import { stat } from "fs";
 
 // Helper function to extract and round time
 const extractAndRoundTime = (transmitTime: string): Date => {
@@ -45,7 +46,7 @@ export default async (req: Request, context: Context) => {
 
         await levels.setJSON("latest", levelData);
         console.log(levelData);
-        return new Response("Post Received");
+        return
     }
     return new Response("Method Not Allowed");
 };
