@@ -1,7 +1,7 @@
 import type { Context } from "@netlify/functions";
 import qs from 'qs';
 import { getStore } from "@netlify/blobs";
-import { stat } from "fs";
+import moment from 'moment-timezone';
 
 // Helper function to extract and round time
 const extractAndRoundTime = (transmitTime: string): Date => {
@@ -18,11 +18,10 @@ const extractAndRoundTime = (transmitTime: string): Date => {
 };
 
 // Helper function to create an array of times
-const createTimesArray = (startDate: Date, length: number): string[] => {
+const createTimesArray = (startDate: Date, length: number, timezone: string): string[] => {
     return Array.from({ length }, (_, i) => {
-        const time = new Date(startDate);
-        time.setHours(time.getHours() - (length - 1 - i));
-        return time.toTimeString().slice(0, 5); // Format as HH:MM
+        const time = moment(startDate).tz(timezone).subtract(length - 1 - i, 'hours');
+        return time.format('HH:mm');
     });
 };
 
@@ -31,13 +30,16 @@ export default async (req: Request, context: Context) => {
         const formData = qs.parse(await req.text());
         console.log(formData);
         const transmitTime = formData.transmit_time;
+        const latitude = parseFloat(formData.iridium_latitude);
+        const longitude = parseFloat(formData.iridium_longitude);
         const roundedDate = extractAndRoundTime(transmitTime);
 
         const hexData = formData.data;
         const decodedData: number[] = JSON.parse(Buffer.from(hexData, 'hex').toString());
 
         const levels = getStore("levels");
-        const times = createTimesArray(roundedDate, 12);
+        const timezone = moment.tz.guess(latitude, longitude);
+        const times = createTimesArray(roundedDate, 12, timezone);
 
         const levelData = times.reduce((acc, time, index) => {
             acc[time] = `${decodedData[index]}cm`;
