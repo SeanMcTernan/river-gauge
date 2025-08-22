@@ -1,4 +1,4 @@
-import type { Context } from "@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
 import qs from 'qs';
 import { getStore } from "@netlify/blobs";
 import moment from 'moment-timezone';
@@ -56,4 +56,8 @@ export default async (req: Request, context: Context) => {
         return new Response(null, { status: 200 });
     }
     return new Response("Method Not Allowed");
+};
+
+export const config: Config = {
+    path: "/levelupdate"
 };
