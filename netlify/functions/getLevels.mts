@@ -1,5 +1,5 @@
 import { getStore } from "@netlify/blobs";
-import type { Context } from "@netlify/functions";
+import type { Config, Context } from "@netlify/functions";
 
 export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
@@ -8,4 +8,9 @@ export default async (req: Request, context: Context) => {
     const levels = getStore(river);
     const latest = await levels.get("latest");
     return new Response(latest);
+};
+
+
+export const config: Config = {
+    path: "/getlevels"
 };
