@@ -14,13 +14,13 @@ const extractAndRoundTime = (transmitTime: string): moment.Moment => {
     return time;
 };
 
-// Helper function to create an array of times
+// Helper function to create an array of times going backwards from the start time
 const createTimesArray = (startTime: moment.Moment, length: number, timezone: string): string[] => {
     const times = Array.from({ length }, (_, i) => {
-        const time = moment(startTime).tz(timezone).add(i, 'hours');
+        const time = moment(startTime).tz(timezone).subtract(length - 1 - i, 'hours');
         return time.format('HH:mm');
     });
-    return times.reverse();
+    return times;
 };
 
 export default async (req: Request, context: Context) => {
