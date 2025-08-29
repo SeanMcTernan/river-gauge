@@ -51,7 +51,25 @@ export default async (req: Request, context: Context) => {
             return acc;
         }, {} as Record<string, string>);
 
-        await levels.setJSON("latest", levelData);
+        const localTransmitTime = moment.utc(transmitTime).tz(timezone);
+
+        const blobData = {
+            levels: levelData,
+            metadata: {
+                transmitTime: {
+                    utc: transmitTime,
+                    local: localTransmitTime.format('YYYY-MM-DD HH:mm:ss'),
+                    timezone: timezone
+                },
+                location: {
+                    latitude: latitude,
+                    longitude: longitude
+                },
+                lastUpdated: moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC'
+            }
+        };
+
+        await levels.setJSON("latest", blobData);
         console.log(levelData);
         return new Response(null, { status: 200 });
     }
