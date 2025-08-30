@@ -6,7 +6,19 @@ import tzlookup from 'tz-lookup';
 
 // Helper function to extract and round time
 const extractAndRoundTime = (transmitTime: string): moment.Moment => {
-    const time = moment.utc(transmitTime, 'YY-MM-DD HH:mm:ss');
+    // Handle multiple possible date formats
+    const formats = [
+        'YYYY-MM-DDTHH:mm:ssZ',  // ISO format like 2025-08-29T14:02:53Z
+        'YY-MM-DD HH:mm:ss',     // Format like 25-08-30 02:00:50
+        moment.ISO_8601          // Standard ISO format
+    ];
+
+    const time = moment.utc(transmitTime, formats, true);
+
+    if (!time.isValid()) {
+        throw new Error(`Invalid transmit time format: ${transmitTime}`);
+    }
+
     if (time.minute() >= 30) {
         time.add(1, 'hour');
     }
@@ -51,7 +63,7 @@ export default async (req: Request, context: Context) => {
             return acc;
         }, {} as Record<string, string>);
 
-        const localTransmitTime = moment.utc(transmitTime).tz(timezone);
+        const localTransmitTime = roundedTime.clone().tz(timezone);
 
         const blobData = {
             levels: levelData,
