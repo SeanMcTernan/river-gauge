@@ -4,6 +4,10 @@ import { getStore } from "@netlify/blobs";
 import moment from 'moment-timezone';
 import tzlookup from 'tz-lookup';
 
+// Read the zero environment variable and convert to number
+const zero = Number(process.env.zero);
+console.log('Zero value from environment:', zero);
+
 // Helper function to extract and round time
 const extractAndRoundTime = (transmitTime: string): moment.Moment => {
     // Handle multiple possible date formats
@@ -59,7 +63,8 @@ export default async (req: Request, context: Context) => {
         const levels = getStore(river);
 
         const levelData = times.reduce((acc, time, index) => {
-            acc[time] = `${decodedData[index]}cm`;
+            const level = zero - decodedData[index];
+            acc[time] = `${level}cm`;
             return acc;
         }, {} as Record<string, string>);
 
