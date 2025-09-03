@@ -45,6 +45,14 @@ export default async (req: Request, context: Context) => {
         const url = new URL(req.url);
         const queryParams = new URLSearchParams(url.search);
         const river = queryParams.keys().next().value;
+        // Check for authentication token in URL path
+        const authToken = queryParams.get('auth');
+        const expectedToken = Netlify.env.get('LEVELUPDATE_AUTH_TOKEN');
+
+        if (!authToken || !expectedToken || authToken !== expectedToken) {
+            console.warn(`Unauthorized access attempt to levelUpdate for river: ${river}`);
+            return new Response("Unauthorized", { status: 401 });
+        }
         //Extract the form data from the payload
         const formData = qs.parse(await req.text());
         console.log(formData);
