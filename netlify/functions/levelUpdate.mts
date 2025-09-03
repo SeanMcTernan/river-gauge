@@ -87,7 +87,22 @@ export default async (req: Request, context: Context) => {
         };
 
         await levels.setJSON("latest", blobData);
-        console.log(levelData);
+        
+        // Trigger historical update
+        try {
+            const historicalUpdateUrl = `${new URL(req.url).origin}/historicalupdate?${river}`;
+            await fetch(historicalUpdateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log(`Historical update triggered for ${river}`);
+        } catch (error) {
+            console.error(`Failed to trigger historical update for ${river}:`, error);
+            // Don't fail the main request if historical update fails
+        }
+        
         return new Response(null, { status: 200 });
     }
     return new Response("Method Not Allowed");
