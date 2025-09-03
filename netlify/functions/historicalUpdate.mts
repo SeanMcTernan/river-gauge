@@ -12,6 +12,14 @@ export default async (req: Request, context: Context) => {
             return new Response("River parameter required", { status: 400 });
         }
 
+        // Check for internal call authentication
+        const internalToken = req.headers.get('x-internal-token');
+        const expectedToken = Netlify.env.get('INTERNAL_FUNCTION_TOKEN');
+
+        if (!internalToken || internalToken !== expectedToken) {
+            return new Response("Unauthorized", { status: 401 });
+        }
+
         try {
             await updateHistoricalData(river);
             console.log(`Updated historical data for ${river}`);

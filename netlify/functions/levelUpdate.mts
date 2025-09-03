@@ -87,14 +87,21 @@ export default async (req: Request, context: Context) => {
         };
 
         await levels.setJSON("latest", blobData);
-        
+
         // Trigger historical update
         try {
+            const internalToken = Netlify.env.get('INTERNAL_FUNCTION_TOKEN');
+            if (!internalToken) {
+                console.error('INTERNAL_FUNCTION_TOKEN environment variable not set');
+                return new Response(null, { status: 200 }); // Continue without historical update
+            }
+
             const historicalUpdateUrl = `${new URL(req.url).origin}/historicalupdate?${river}`;
             await fetch(historicalUpdateUrl, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'x-internal-token': internalToken
                 }
             });
             console.log(`Historical update triggered for ${river}`);
@@ -102,7 +109,7 @@ export default async (req: Request, context: Context) => {
             console.error(`Failed to trigger historical update for ${river}:`, error);
             // Don't fail the main request if historical update fails
         }
-        
+
         return new Response(null, { status: 200 });
     }
     return new Response("Method Not Allowed");
