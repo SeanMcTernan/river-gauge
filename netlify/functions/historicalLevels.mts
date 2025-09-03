@@ -27,8 +27,8 @@ export default async (req: Request, context: Context) => {
     } else {
         // All years: /historicallevels?wigwam
         const currentYear = new Date().getFullYear();
-        const startYear = currentYear - 10;
-        const endYear = currentYear + 100;
+        const startYear = 2025;
+        const endYear = currentYear + 10;
         yearsToFetch = Array.from({ length: endYear - startYear + 1 }, (_, i) =>
             (startYear + i).toString()
         );
