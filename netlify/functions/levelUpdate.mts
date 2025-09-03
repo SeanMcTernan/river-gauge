@@ -45,6 +45,14 @@ export default async (req: Request, context: Context) => {
         const url = new URL(req.url);
         const queryParams = new URLSearchParams(url.search);
         const river = queryParams.keys().next().value;
+        // Check for authentication token in URL path
+        const authToken = queryParams.get('auth');
+        const expectedToken = Netlify.env.get('LEVELUPDATE_AUTH_TOKEN');
+
+        if (!authToken || !expectedToken || authToken !== expectedToken) {
+            console.warn(`Unauthorized access attempt to levelUpdate for river: ${river}`);
+            return new Response("Unauthorized", { status: 401 });
+        }
         //Extract the form data from the payload
         const formData = qs.parse(await req.text());
         console.log(formData);
@@ -87,7 +95,29 @@ export default async (req: Request, context: Context) => {
         };
 
         await levels.setJSON("latest", blobData);
-        console.log(levelData);
+
+        // Trigger historical update
+        try {
+            const internalToken = Netlify.env.get('INTERNAL_FUNCTION_TOKEN');
+            if (!internalToken) {
+                console.error('INTERNAL_FUNCTION_TOKEN environment variable not set');
+                return new Response(null, { status: 200 }); // Continue without historical update
+            }
+
+            const historicalUpdateUrl = `${new URL(req.url).origin}/historicalupdate?${river}`;
+            await fetch(historicalUpdateUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-internal-token': internalToken
+                }
+            });
+            console.log(`Historical update triggered for ${river}`);
+        } catch (error) {
+            console.error(`Failed to trigger historical update for ${river}:`, error);
+            // Don't fail the main request if historical update fails
+        }
+
         return new Response(null, { status: 200 });
     }
     return new Response("Method Not Allowed");
