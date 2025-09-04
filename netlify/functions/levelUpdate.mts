@@ -4,9 +4,7 @@ import { getStore } from "@netlify/blobs";
 import moment from 'moment-timezone';
 import tzlookup from 'tz-lookup';
 
-// Read the zero environment variable and convert to number
-const zero = Number(process.env.WIGWAM_ZERO);
-console.log('Zero value from environment:', zero);
+
 
 // Helper function to extract and round time
 const extractAndRoundTime = (transmitTime: string): moment.Moment => {
@@ -52,6 +50,15 @@ export default async (req: Request, context: Context) => {
         if (!authToken || !expectedToken || authToken !== expectedToken) {
             console.warn(`Unauthorized access attempt to levelUpdate for river: ${river}`);
             return new Response("Unauthorized", { status: 401 });
+        }
+
+        if (river !== 'wigwam' && river !== 'toby') {
+            return new Response("Method Not Allowed", { status: 405 });
+        }
+        // Read the zero environment variable and convert to number adding if statement for future rivers
+        let zero;
+        if (river === 'wigwam') {
+            zero = Number(process.env.WIGWAM_ZERO);
         }
         //Extract the form data from the payload
         const formData = qs.parse(await req.text());
