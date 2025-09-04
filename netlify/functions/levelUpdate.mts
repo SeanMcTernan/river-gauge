@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import tzlookup from 'tz-lookup';
 
 // Read the zero environment variable and convert to number
-const zero = Number(process.env.zero);
+const zero = Number(process.env.WIGWAM_ZERO);
 console.log('Zero value from environment:', zero);
 
 // Helper function to extract and round time
