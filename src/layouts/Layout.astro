@@ -1,4 +1,6 @@
 ---
+import logo from '../assets/images/logo.svg';
+
 export interface Props {
   title: string;
   description?: string;
@@ -25,12 +27,7 @@ const { title, description = "River Gauge Monitoring System" } = Astro.props;
       <div class="max-w-7xl mx-auto px-6 py-4">
         <nav class="flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-              </svg>
-            </div>
-            <span class="text-lg font-semibold text-gray-900">River Gauge</span>
+            <img src={logo.src} alt="River Gauge Logo" class="w-20 h-20" />
           </div>
           <nav class="hidden md:flex items-center space-x-8">
             <a href="/" class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium">Home</a>
@@ -58,12 +55,7 @@ const { title, description = "River Gauge Monitoring System" } = Astro.props;
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div class="col-span-1 md:col-span-2">
             <div class="flex items-center space-x-3 mb-4">
-              <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                </svg>
-              </div>
-              <span class="text-lg font-semibold text-gray-900">River Gauge</span>
+              <img src={logo.src} alt="digital flow gauge Logo" class="w-20 h-20" />
             </div>
             <p class="text-gray-600 text-sm max-w-md">
               Real-time and historical river level monitoring system providing accurate water level data for safety and planning.
