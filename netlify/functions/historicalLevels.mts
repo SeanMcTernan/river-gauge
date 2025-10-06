@@ -49,7 +49,17 @@ export default async (req: Request, context: Context) => {
             const yearData = await historicalStore.get(yearStr);
             if (yearData) {
                 const parsedData = JSON.parse(yearData);
-                allHistoricalData.data[yearStr] = parsedData.data[yearStr];
+                const yearDataObj = parsedData.data[yearStr];
+                
+                // Sort months in descending order (12, 11, 10, 09, 08, etc.)
+                const sortedYearData: Record<string, any> = {};
+                const monthKeys = Object.keys(yearDataObj).sort((a, b) => parseInt(b) - parseInt(a));
+                
+                for (const month of monthKeys) {
+                    sortedYearData[month] = yearDataObj[month];
+                }
+                
+                allHistoricalData.data[yearStr] = sortedYearData;
                 allHistoricalData.metadata.availableYears.push(yearStr);
                 allHistoricalData.metadata.totalYears++;
             }
