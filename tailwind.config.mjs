@@ -1,9 +1,18 @@
+import defaultTheme from 'tailwindcss/defaultTheme';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
   theme: {
     extend: {
       colors: {
+        primaryGray: '#202021',
+        secondaryGray: '#505459',
+        primaryTeal: '#3395ad',
+        primaryBlue: '#66cbea',
+        primaryWhite: '#bdbdbd',
+        default: 'var(--aw-color-text-default)',
+        muted: 'var(--aw-color-text-muted)',
         purple: {
           50: '#faf5ff',
           100: '#f3e8ff',
@@ -30,7 +39,10 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--aw-font-sans, ui-sans-serif)', ...defaultTheme.fontFamily.sans],
+        serif: ['var(--aw-font-serif, ui-serif)', ...defaultTheme.fontFamily.serif],
+        heading: ['var(--aw-font-heading, ui-sans-serif)', ...defaultTheme.fontFamily.sans],
+        thin: ['Roboto-Thin', ...defaultTheme.fontFamily.sans],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -38,5 +50,6 @@ export default {
       }
     },
   },
+  darkMode: 'class',
   plugins: [],
 }

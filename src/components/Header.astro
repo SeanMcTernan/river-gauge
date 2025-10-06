@@ -1,0 +1,31 @@
+---
+import HeaderLink from "./Links.astro";
+import { Image } from "astro:assets";
+import logo from "../assets/images/logo.svg";
+---
+
+<header class="sticky top-0 bg-primaryGray shadow-md py-4 mb-8 z-50">
+  <div class="container mx-auto flex justify-between items-center">
+    <a href="/" class="my-2 ml-2 hidden sm:block">
+      <Image src={logo} alt="Site Logo" />
+    </a>
+    <nav
+      class="flex justify-center items-center w-full text-primaryWhite uppercase"
+    >
+      <div
+        class="internal-links flex space-x-4 sm:space-x-8 lg:space-x-16 text-xs sm:text-sm md:text-base"
+      >
+        <HeaderLink href="/" class="hover:text-primaryTeal">Home</HeaderLink>
+        <HeaderLink href="/levels" class="hover:text-primaryTeal"
+          >Current Levels</HeaderLink
+        >
+        <HeaderLink href="/historical" class="hover:text-primaryTeal"
+          >Historical Data</HeaderLink
+        >
+        <HeaderLink href="/about" class="hover:text-primaryTeal"
+          >About</HeaderLink
+        >
+      </div>
+    </nav>
+  </div>
+</header>

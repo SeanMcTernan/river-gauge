@@ -1,0 +1,18 @@
+---
+interface Props {
+  urlPath: string;
+  text: string;
+  newAttributes?: string;
+}
+
+const { urlPath, text, newAttributes } = Astro.props;
+const defaultClass =
+  "border border-primaryTeal text-primaryTeal py-2 px-4 rounded-lg inline-block hover:bg-primaryTeal hover:text-white mt-4";
+const finalClass = newAttributes
+  ? `${defaultClass} ${newAttributes}`
+  : defaultClass;
+---
+
+<a href={urlPath} class={finalClass}>
+  {text}
+</a>
