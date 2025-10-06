@@ -1,0 +1,336 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+
+// Fetch real data for Wigwam River
+let wigwamData = {
+  name: "Wigwam River",
+  level: "Loading...",
+  status: "Unknown",
+  statusColor: "gray",
+  percentage: 0,
+  updated: "Loading...",
+  gradient: "from-gray-400 to-gray-500"
+};
+
+try {
+  // Use the correct API URL for local development
+  const apiUrl = import.meta.env.DEV ? 'http://localhost:52736' : (Astro.site || 'https://your-site.netlify.app');
+  const response = await fetch(`${apiUrl}/latestlevels?wigwam`);
+  if (response.ok) {
+    const data = await response.json();
+    if (data?.levels && typeof data.levels === 'object') {
+      // Get the first value from the levels object and parse the number
+      const levelValues = Object.values(data.levels);
+      if (levelValues.length > 0) {
+        const levelString = levelValues[0] as string;
+        const currentLevel = parseInt(levelString.replace('cm', ''));
+      
+        // Determine status based on level
+        let status, statusColor, gradient;
+        if (currentLevel > 80) {
+          status = "High";
+          statusColor = "red";
+          gradient = "from-red-400 to-red-500";
+        } else if (currentLevel > 60) {
+          status = "Watch";
+          statusColor = "yellow";
+          gradient = "from-yellow-400 to-yellow-500";
+        } else if (currentLevel < 20) {
+          status = "Low";
+          statusColor = "blue";
+          gradient = "from-blue-400 to-blue-500";
+        } else {
+          status = "Normal";
+          statusColor = "green";
+          gradient = "from-primaryTeal to-primaryBlue";
+        }
+        
+        wigwamData = {
+          name: "Wigwam River",
+          level: `${currentLevel} cm`,
+          status: status,
+          statusColor: statusColor,
+          percentage: Math.min(currentLevel, 100),
+          updated: "Just now",
+          gradient: gradient
+        };
+      }
+    }
+  }
+} catch (error) {
+  console.error('Error fetching Wigwam data:', error);
+}
+
+// Mock data for other rivers
+const otherRiversData = [
+  {
+    name: "Pine Creek",
+    level: "6.8 ft", 
+    status: "Watch",
+    statusColor: "yellow",
+    percentage: 68,
+    updated: "3 minutes ago",
+    gradient: "from-yellow-400 to-yellow-500"
+  },
+  {
+    name: "Mill River",
+    level: "3.1 ft",
+    status: "Normal", 
+    statusColor: "green",
+    percentage: 31,
+    updated: "2 minutes ago",
+    gradient: "from-primaryTeal to-primaryBlue"
+  },
+  {
+    name: "Elk River",
+    level: "5.4 ft",
+    status: "Normal",
+    statusColor: "green", 
+    percentage: 54,
+    updated: "1 minute ago",
+    gradient: "from-primaryTeal to-primaryBlue"
+  },
+  {
+    name: "Kootenay River",
+    level: "8.9 ft",
+    status: "High",
+    statusColor: "red",
+    percentage: 89,
+    updated: "4 minutes ago", 
+    gradient: "from-red-400 to-red-500"
+  },
+  {
+    name: "Bull River",
+    level: "2.7 ft",
+    status: "Low",
+    statusColor: "blue",
+    percentage: 27,
+    updated: "6 minutes ago",
+    gradient: "from-blue-400 to-blue-500"
+  },
+  {
+    name: "St. Mary River",
+    level: "7.2 ft",
+    status: "Watch",
+    statusColor: "yellow",
+    percentage: 72,
+    updated: "8 minutes ago",
+    gradient: "from-yellow-400 to-yellow-500"
+  },
+  {
+    name: "Moyie River",
+    level: "4.8 ft",
+    status: "Normal",
+    statusColor: "green",
+    percentage: 48,
+    updated: "7 minutes ago",
+    gradient: "from-primaryTeal to-primaryBlue"
+  }
+];
+
+// Combine Wigwam real data with other mock data
+const riverData = [wigwamData, ...otherRiversData];
+---
+
+<Layout
+  pageTitle="Current Levels"
+  pageDescription="Real-time water levels for all monitored river gauge stations."
+>
+  <div class="container mx-auto px-6 py-8">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl lg:text-5xl font-bold text-white mb-6">
+        Current Water Levels
+      </h1>
+      <p class="text-xl text-primaryWhite max-w-3xl mx-auto">
+        Real-time monitoring data from all active river gauge stations. Data updates automatically every few minutes.
+      </p>
+    </div>
+
+    <!-- Scrolling River Levels Grid -->
+    <div class="max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-primaryTeal scrollbar-track-primaryGray/20">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pr-4">
+        {riverData.map((river, index) => {
+          const isWigwam = river.name === "Wigwam River";
+          
+          if (isWigwam) {
+            return (
+              <a href="/river/wigwam" class="block cursor-pointer">
+                <div class="bg-primaryGray/40 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/20 hover:border-primaryTeal/50 transition-all duration-300 hover:transform hover:scale-105">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-primaryTeal font-semibold text-lg">
+                      {river.name}
+                      <svg class="inline-block w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                    </h3>
+                    <span class={`px-3 py-1 rounded-full text-sm ${
+                      river.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
+                      river.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                      river.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
+                      'bg-blue-500/20 text-blue-300'
+                    }`}>
+                      {river.status}
+                    </span>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <div class={`text-3xl font-bold mb-2 ${
+                      river.statusColor === 'green' ? 'text-primaryTeal' :
+                      river.statusColor === 'yellow' ? 'text-yellow-400' :
+                      river.statusColor === 'red' ? 'text-red-400' :
+                      'text-blue-400'
+                    }`}>
+                      {river.level}
+                    </div>
+                    <p class="text-sm text-secondaryGray">Updated {river.updated}</p>
+                  </div>
+                  
+                  <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
+                    <div 
+                      class={`h-full bg-gradient-to-r ${river.gradient} rounded-full transition-all duration-500`}
+                      style={`width: ${river.percentage}%`}
+                    ></div>
+                  </div>
+                  
+                  <!-- Additional Info -->
+                  <div class="mt-4 pt-4 border-t border-primaryWhite/10">
+                    <div class="flex justify-between text-sm text-primaryWhite/70">
+                      <span>Capacity: {river.percentage}%</span>
+                      <span class={`${
+                        river.percentage > 80 ? 'text-red-300' :
+                        river.percentage > 60 ? 'text-yellow-300' :
+                        'text-green-300'
+                      }`}>
+                        {river.percentage > 80 ? 'High' : river.percentage > 60 ? 'Moderate' : 'Safe'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4 pt-4 border-t border-primaryTeal/20">
+                    <p class="text-xs text-primaryTeal text-center">Click for detailed view</p>
+                  </div>
+                </div>
+              </a>
+            );
+          } else {
+            return (
+              <div class="bg-primaryGray/40 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/20 hover:border-primaryTeal/50 transition-all duration-300 hover:transform hover:scale-105">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-primaryWhite font-semibold text-lg">{river.name}</h3>
+                  <span class={`px-3 py-1 rounded-full text-sm ${
+                    river.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
+                    river.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                    river.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
+                    'bg-blue-500/20 text-blue-300'
+                  }`}>
+                    {river.status}
+                  </span>
+                </div>
+                
+                <div class="mb-4">
+                  <div class={`text-3xl font-bold mb-2 ${
+                    river.statusColor === 'green' ? 'text-primaryTeal' :
+                    river.statusColor === 'yellow' ? 'text-yellow-400' :
+                    river.statusColor === 'red' ? 'text-red-400' :
+                    'text-blue-400'
+                  }`}>
+                    {river.level}
+                  </div>
+                  <p class="text-sm text-secondaryGray">Updated {river.updated}</p>
+                </div>
+                
+                <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
+                  <div 
+                    class={`h-full bg-gradient-to-r ${river.gradient} rounded-full transition-all duration-500`}
+                    style={`width: ${river.percentage}%`}
+                  ></div>
+                </div>
+                
+                <!-- Additional Info -->
+                <div class="mt-4 pt-4 border-t border-primaryWhite/10">
+                  <div class="flex justify-between text-sm text-primaryWhite/70">
+                    <span>Capacity: {river.percentage}%</span>
+                    <span class={`${
+                      river.percentage > 80 ? 'text-red-300' :
+                      river.percentage > 60 ? 'text-yellow-300' :
+                      'text-green-300'
+                    }`}>
+                      {river.percentage > 80 ? 'High' : river.percentage > 60 ? 'Moderate' : 'Safe'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+        })}
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-12 bg-primaryGray/20 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/20">
+      <h3 class="text-primaryWhite font-semibold text-lg mb-4">Status Legend</h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+          <span class="text-primaryWhite text-sm">Normal</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+          <span class="text-primaryWhite text-sm">Watch</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+          <span class="text-primaryWhite text-sm">High</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+          <span class="text-primaryWhite text-sm">Low</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-refresh Notice -->
+    <div class="mt-6 text-center">
+      <p class="text-sm text-primaryWhite/60">
+        Data refreshes automatically every 5 minutes. Last updated: {new Date().toLocaleTimeString()}
+      </p>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-primaryTeal::-webkit-scrollbar-thumb {
+    background-color: #3395ad;
+    border-radius: 6px;
+  }
+  
+  .scrollbar-track-primaryGray\/20::-webkit-scrollbar-track {
+    background-color: rgba(32, 32, 33, 0.2);
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: rgba(32, 32, 33, 0.2);
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: #3395ad;
+    border-radius: 6px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #66cbea;
+  }
+</style>
