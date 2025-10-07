@@ -2,6 +2,7 @@
 export const prerender = false;
 
 import Layout from '../../layouts/Layout.astro';
+import PlotlyChart from '../../components/PlotlyChart.astro';
 
 const { river } = Astro.params;
 
@@ -10,9 +11,13 @@ let latestData: any = null;
 let currentLevel: number | null = null;
 let error: string | null = null;
 
+// Fetch historical data
+let historicalData: any = null;
+let chartData: any = null;
+
 try {
   // Use the correct API URL for local development
-  const apiUrl = import.meta.env.DEV ? 'http://localhost:52736' : (Astro.site || 'https://your-site.netlify.app');
+  const apiUrl = import.meta.env.DEV ? 'http://localhost:58111' : (Astro.site || 'https://your-site.netlify.app');
   const response = await fetch(`${apiUrl}/latestlevels?${river}`);
   if (response.ok) {
     latestData = await response.json();
@@ -22,6 +27,60 @@ try {
       if (levelValues.length > 0) {
         const levelString = levelValues[0] as string;
         currentLevel = parseInt(levelString.replace('cm', ''));
+      }
+    }
+  }
+
+  // Fetch historical data
+  const historicalResponse = await fetch(`${apiUrl}/historicallevels?${river}`);
+  console.log('Historical response status:', historicalResponse.status);
+  if (historicalResponse.ok) {
+    historicalData = await historicalResponse.json();
+    console.log('Historical data received:', JSON.stringify(historicalData, null, 2));
+    
+    // Process historical data for Plotly
+    if (historicalData?.data) {
+      const dates: string[] = [];
+      const levels: number[] = [];
+      
+      // Extract data from the nested structure
+      for (const year in historicalData.data) {
+        for (const month in historicalData.data[year]) {
+          for (const date in historicalData.data[year][month]) {
+            for (const hour in historicalData.data[year][month][date]) {
+              const level = historicalData.data[year][month][date][hour];
+              const dateTime = `${date} ${hour}:00`;
+              dates.push(dateTime);
+              levels.push(typeof level === 'number' ? level : parseInt(level.toString()));
+            }
+          }
+        }
+      }
+      
+      console.log('Processed data points:', dates.length);
+      console.log('Sample dates:', dates.slice(0, 5));
+      console.log('Sample levels:', levels.slice(0, 5));
+      
+      if (dates.length > 0) {
+        // Sort by date
+        const combined = dates.map((date, i) => ({ date: new Date(date), level: levels[i] }))
+          .sort((a, b) => a.date.getTime() - b.date.getTime());
+        
+        chartData = {
+          x: combined.map(item => item.date.toISOString()),
+          y: combined.map(item => item.level),
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Water Level',
+          line: { color: '#3395ad', width: 2 },
+          marker: { color: '#66cbea', size: 4 }
+        };
+        
+        console.log('Chart data created with', chartData.x.length, 'points');
+        console.log('Sample chart data:', {
+          x: chartData.x.slice(0, 3),
+          y: chartData.y.slice(0, 3)
+        });
       }
     }
   }
@@ -132,6 +191,25 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
           </div>
         )}
       </div>
+
+      <!-- Historical Data Chart -->
+      {chartData ? (
+        <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+          <h2 class="text-2xl font-bold text-white mb-6 text-center">Historical Water Levels</h2>
+          <PlotlyChart chartData={chartData} />
+        </div>
+      ) : (
+        <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+          <h2 class="text-2xl font-bold text-white mb-6 text-center">Historical Water Levels</h2>
+          <div class="text-center py-12">
+            <p class="text-primaryWhite/70 text-lg mb-2">No historical data available</p>
+            <p class="text-primaryWhite/50 text-sm">Historical data will appear once measurements are recorded</p>
+            {historicalData && (
+              <p class="text-yellow-400/60 text-xs mt-4">Debug: API responded but no processable data found</p>
+            )}
+          </div>
+        </div>
+      )}
 
       <!-- Additional Info Cards -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

@@ -16,7 +16,7 @@ let wigwamData = {
 
 try {
   // Use the correct API URL for local development
-  const apiUrl = import.meta.env.DEV ? 'http://localhost:52736' : (Astro.site || 'https://your-site.netlify.app');
+  const apiUrl = import.meta.env.DEV ? 'http://localhost:58111' : (Astro.site || 'https://your-site.netlify.app');
   const response = await fetch(`${apiUrl}/latestlevels?wigwam`);
   if (response.ok) {
     const data = await response.json();
