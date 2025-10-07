@@ -114,6 +114,27 @@ async function updateHistoricalData(river: string) {
         historicalData.metadata.lastUpdated = moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC';
     }
 
+    // Sort everything chronologically: years, months, dates
+    const sortedYears: Record<string, any> = {};
+    Object.keys(historicalData.data)
+        .sort()
+        .forEach(y => {
+            const sortedMonths: Record<string, any> = {};
+            Object.keys(historicalData.data[y])
+                .sort((a, b) => parseInt(a) - parseInt(b))
+                .forEach(m => {
+                    const sortedDates: Record<string, any> = {};
+                    Object.keys(historicalData.data[y][m])
+                        .sort()
+                        .forEach(d => {
+                            sortedDates[d] = historicalData.data[y][m][d];
+                        });
+                    sortedMonths[m] = sortedDates;
+                });
+            sortedYears[y] = sortedMonths;
+        });
+    historicalData.data = sortedYears;
+
     // Save updated historical data
     await historicalStore.setJSON(year, historicalData);
 }
