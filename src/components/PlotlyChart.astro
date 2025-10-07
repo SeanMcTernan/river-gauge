@@ -58,36 +58,28 @@ const { chartData } = Astro.props;
 </style>
 
 <script define:vars={{ chartData }}>
-  console.log('🎨 PlotlyChart Script loaded');
-  console.log('📊 chartData:', chartData);
-  console.log('📊 chartData type:', typeof chartData);
-  console.log('📊 chartData.x exists:', chartData?.x !== undefined);
-  console.log('📊 chartData.x length:', chartData?.x?.length);
+  console.log('Script loaded, chartData:', chartData);
   
   // Function to wait for Plotly and create chart
   function waitForPlotlyAndCreateChart() {
-    console.log('🔍 Checking for Plotly...', typeof window.Plotly);
+    console.log('Checking for Plotly...', typeof window.Plotly);
     
     if (typeof window.Plotly !== 'undefined') {
-      console.log('✅ Plotly found! Creating chart...');
+      console.log('Plotly found! Creating chart...');
       createChart();
     } else {
-      console.log('⏳ Plotly not ready, waiting...');
+      console.log('Plotly not ready, waiting...');
       setTimeout(waitForPlotlyAndCreateChart, 200);
     }
   }
   
   function createChart() {
     try {
-      const container = document.getElementById('plotly-chart');
-      if (!container) {
-        console.error('❌ Container #plotly-chart not found!');
-        return;
-      }
+      console.log('Creating chart with data points:', chartData.x.length);
       
-      console.log('📈 Creating chart with data points:', chartData.x.length);
-      console.log('📈 First 3 x values:', chartData.x.slice(0, 3));
-      console.log('📈 First 3 y values:', chartData.y.slice(0, 3));
+      // Calculate current month range for initial view (start of month to now)
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       
       const layout = {
         title: { text: '' },
@@ -95,7 +87,8 @@ const { chartData } = Astro.props;
           title: 'Date & Time',
           color: '#bdbdbd',
           gridcolor: '#505459',
-          fixedrange: false
+          fixedrange: false,
+          range: [startOfMonth.toISOString(), now.toISOString()]
         },
         yaxis: { 
           title: 'Water Level (cm)',
@@ -141,7 +134,6 @@ const { chartData } = Astro.props;
 
       window.Plotly.newPlot('plotly-chart', [chartData], layout, config);
       console.log('✅ Chart created successfully!');
-      console.log('✅ Container now has children:', container.children.length);
       
       // Move modebar to the right side
       setTimeout(() => {
@@ -155,27 +147,22 @@ const { chartData } = Astro.props;
       
     } catch (error) {
       console.error('❌ Error creating chart:', error);
-      console.error('❌ Error stack:', error.stack);
       const container = document.getElementById('plotly-chart');
       if (container) {
-        container.innerHTML = '<p class="text-red-400 text-center p-4">Chart Error: ' + error.message + '</p>';
+        container.innerHTML = '<p class="text-red-400 text-center">Chart Error: ' + error.message + '</p>';
       }
     }
   }
   
   // Start the process
   if (chartData && chartData.x && chartData.x.length > 0) {
-    console.log('✅ Chart data valid, starting...');
-    // Wait a bit for DOM to be ready
-    setTimeout(() => {
-      waitForPlotlyAndCreateChart();
-    }, 100);
+    console.log('Chart data valid, starting...');
+    waitForPlotlyAndCreateChart();
   } else {
     console.log('❌ No valid chart data');
-    console.log('❌ chartData:', chartData);
     const container = document.getElementById('plotly-chart');
     if (container) {
-      container.innerHTML = '<p class="text-primaryWhite text-center p-4">No chart data available. Check console for details.</p>';
+      container.innerHTML = '<p class="text-primaryWhite text-center">No chart data available</p>';
     }
   }
 </script>
