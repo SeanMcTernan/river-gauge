@@ -18,15 +18,32 @@ try {
   // Use Netlify CONTEXT to determine environment
   const context = import.meta.env.CONTEXT || 'production';
   const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
-  const response = await fetch(`${apiUrl}/latestlevels?wigwam`);
+  const response = await fetch(`${apiUrl}/historicallevels?wigwam`);
   if (response.ok) {
     const data = await response.json();
-    if (data?.levels && typeof data.levels === 'object') {
-      // Get the first value from the levels object and parse the number
-      const levelValues = Object.values(data.levels);
-      if (levelValues.length > 0) {
-        const levelString = levelValues[0] as string;
-        const currentLevel = parseInt(levelString.replace('cm', ''));
+    if (data?.data && typeof data.data === 'object') {
+      // Extract all readings and find the most recent
+      const readings: { date: Date, level: number }[] = [];
+      
+      for (const year in data.data) {
+        for (const month in data.data[year]) {
+          for (const date in data.data[year][month]) {
+            for (const hour in data.data[year][month][date]) {
+              const level = data.data[year][month][date][hour];
+              const dateTime = `${date} ${hour}:00`;
+              readings.push({
+                date: new Date(dateTime),
+                level: typeof level === 'number' ? level : parseInt(level.toString())
+              });
+            }
+          }
+        }
+      }
+      
+      if (readings.length > 0) {
+        // Sort and get most recent reading
+        readings.sort((a, b) => a.date.getTime() - b.date.getTime());
+        const currentLevel = readings[readings.length - 1].level;
       
         // Determine status based on level
         let status, statusColor, gradient;

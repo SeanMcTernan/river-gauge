@@ -6,8 +6,7 @@ import PlotlyChart from '../../components/PlotlyChart.astro';
 
 const { river } = Astro.params;
 
-// Fetch latest levels data
-let latestData: any = null;
+// Fetch data from historical endpoint only
 let currentLevel: number | null = null;
 let error: string | null = null;
 
@@ -21,18 +20,6 @@ try {
   // Use Netlify CONTEXT to determine environment
   const context = import.meta.env.CONTEXT || 'production';
   const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
-  const response = await fetch(`${apiUrl}/latestlevels?${river}`);
-  if (response.ok) {
-    latestData = await response.json();
-    // Get the first value from the levels object and parse the number
-    if (latestData?.levels && typeof latestData.levels === 'object') {
-      const levelValues = Object.values(latestData.levels);
-      if (levelValues.length > 0) {
-        const levelString = levelValues[0] as string;
-        currentLevel = parseInt(levelString.replace('cm', ''));
-      }
-    }
-  }
 
   // Fetch historical data
   const historicalResponse = await fetch(`${apiUrl}/historicallevels?${river}`);
@@ -66,6 +53,10 @@ try {
         const combined = dates.map((date, i) => ({ date: new Date(date), level: levels[i] }))
           .sort((a, b) => a.date.getTime() - b.date.getTime());
         
+        // Get the most recent reading as current level
+        const mostRecentReading = combined[combined.length - 1];
+        currentLevel = mostRecentReading.level;
+        
         chartData = {
           x: combined.map(item => item.date.toISOString()),
           y: combined.map(item => item.level),
@@ -78,24 +69,27 @@ try {
           fillcolor: 'rgba(51, 149, 173, 0.25)'
         };
         
-        // Calculate 24h change
+        // Calculate 24h change: Compare most recent reading to reading from 24 hours before
         if (combined.length >= 2 && currentLevel !== null) {
-          const now = new Date();
-          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          // Most recent reading time
+          const mostRecentTime = mostRecentReading.date;
+          const exactlyOneDayBefore = new Date(mostRecentTime.getTime() - 24 * 60 * 60 * 1000);
           
-          // Find the reading closest to 24h ago
+          // Find the historical reading closest to exactly 24 hours before the most recent reading
           let closest24hReading = combined[0];
-          let minDiff = Math.abs(combined[0].date.getTime() - oneDayAgo.getTime());
+          let minDiff = Math.abs(combined[0].date.getTime() - exactlyOneDayBefore.getTime());
           
           for (const reading of combined) {
-            const diff = Math.abs(reading.date.getTime() - oneDayAgo.getTime());
+            const diff = Math.abs(reading.date.getTime() - exactlyOneDayBefore.getTime());
             if (diff < minDiff) {
               minDiff = diff;
               closest24hReading = reading;
             }
           }
           
+          // Calculate change: most recent reading - reading from 24h before that
           change24h = currentLevel - closest24hReading.level;
+          console.log(`24h change: ${currentLevel}cm (${mostRecentTime.toISOString()}) - ${closest24hReading.level}cm (${closest24hReading.date.toISOString()}) = ${change24h}cm`);
         }
         
         // Calculate monthly average
