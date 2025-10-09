@@ -135,8 +135,8 @@ const riverName = river ? (riverNames[river] || river) : 'Unknown River';
 // Determine status based on level
 const getStatus = (level) => {
   if (level > 150) return { status: 'High', color: 'red' };
-  if (level >= 100) return { status: 'Medium', color: 'green' };
-  return { status: 'Low', color: 'orange' };
+  if (level >= 100) return { status: 'Running', color: 'green' };
+  return { status: 'Low', color: 'yellow' };
 };
 
 const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown', color: 'gray' };
@@ -179,7 +179,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
             <div class="mb-6">
               <span class={`px-4 py-2 rounded-full text-lg font-medium ${
                 statusInfo.color === 'green' ? 'bg-green-500/20 text-green-300' :
-                statusInfo.color === 'orange' ? 'bg-orange-500/20 text-orange-300' :
+                statusInfo.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
                 statusInfo.color === 'red' ? 'bg-red-500/20 text-red-300' :
                 'bg-gray-500/20 text-gray-300'
               }`}>
@@ -190,7 +190,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
             <!-- Big Level Display -->
             <div class={`text-8xl lg:text-9xl font-bold mb-4 ${
               statusInfo.color === 'green' ? 'text-green-400' :
-              statusInfo.color === 'orange' ? 'text-orange-400' :
+              statusInfo.color === 'yellow' ? 'text-yellow-400' :
               statusInfo.color === 'red' ? 'text-red-400' :
               'text-gray-400'
             }`}>
