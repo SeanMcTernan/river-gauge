@@ -3,6 +3,7 @@ export const prerender = false;
 
 import Layout from '../layouts/Layout.astro';
 import Button from "../components/Button.astro";
+import RiverAnimation from "../components/RiverAnimation.astro";
 
 // Fetch real data for Wigwam River
 let wigwamData = {
@@ -59,7 +60,8 @@ try {
   pageTitle="Home"
   pageDescription="Real-time river gauge monitoring system providing accurate water level data for safety and planning."
 >
-  <main class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+  <RiverAnimation />
+  <main class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 h-full relative">
     <div
       class="flex flex-col justify-center items-start lg:items-end p-4 lg:mt-[-10rem] h-full"
     >
