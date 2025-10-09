@@ -42,50 +42,49 @@ async function updateHistoricalData(river: string) {
 
     const latest = JSON.parse(latestData.data);
 
-    // Use the transmit time from the data, not current time
+    // Parse transmit time to determine the date range of readings
     const transmitTime = latest.metadata?.transmitTime?.utc || latest.metadata?.transmitTime;
-    let dataDate;
-
-    if (transmitTime) {
-        // Parse the transmit time to get the correct date
-        dataDate = moment.utc(transmitTime, [
-            'YYYY-MM-DDTHH:mm:ssZ',  // ISO format
-            'YY-MM-DD HH:mm:ss',     // Format like 25-08-29 02:06:00
-            moment.ISO_8601
-        ], true);
-    } else {
-        // Fallback to current time if no transmit time available
-        dataDate = moment();
+    if (!transmitTime) {
+        console.warn('No transmit time found in metadata');
+        return;
     }
 
-    const year = dataDate.format('YYYY');
-    const month = dataDate.format('MM');
-    const date = dataDate.format('YYYY-MM-DD');
+    const transmitMoment = moment.utc(transmitTime, [
+        'YYYY-MM-DDTHH:mm:ssZ',
+        'YY-MM-DD HH:mm:ss',
+        moment.ISO_8601
+    ], true);
 
-    // Get existing historical data for the year
-    let historicalData;
-    try {
-        const existing = await historicalStore.get(year);
-        historicalData = existing ? JSON.parse(existing) : createEmptyYearStructure(river, year);
-    } catch {
-        historicalData = createEmptyYearStructure(river, year);
+    if (!transmitMoment.isValid()) {
+        console.error(`Invalid transmit time: ${transmitTime}`);
+        return;
     }
+
+    // Round to nearest hour (same logic as levelUpdate)
+    if (transmitMoment.minute() >= 30) {
+        transmitMoment.add(1, 'hour');
+    }
+    transmitMoment.minute(0).second(0).millisecond(0);
+
+    // Cache for historical data across potentially multiple years
+    const yearDataCache: Record<string, any> = {};
 
     // Add current data if it exists in latest readings
     if (latest.levels && Object.keys(latest.levels).length > 0) {
-        if (!historicalData.data[year]) {
-            historicalData.data[year] = {};
-        }
-        if (!historicalData.data[year][month]) {
-            historicalData.data[year][month] = {};
-        }
+        // Group readings by their actual date (not transmit date)
+        const readingsByDate: Record<string, Record<string, number>> = {};
 
-        // Convert readings to numbers and merge with existing daily data
-        const newReadings: Record<string, number> = {};
-        for (const [time, level] of Object.entries(latest.levels)) {
+        // The times array from levelUpdate goes backwards from transmit time
+        // Keys are just "HH:mm" format, sorted alphabetically
+        const timeKeys = Object.keys(latest.levels).sort();
+
+        for (let i = 0; i < timeKeys.length; i++) {
+            const timeKey = timeKeys[i];
+            const level = latest.levels[timeKey];
+
             // Skip blank, null, or invalid readings
             if (!level || level === '' || level === null || level === undefined) {
-                console.warn(`Skipping blank reading for time ${time}`);
+                console.warn(`Skipping blank reading for time ${timeKey}`);
                 continue;
             }
 
@@ -94,28 +93,88 @@ async function updateHistoricalData(river: string) {
 
             // Only add if we get a valid number
             if (!isNaN(numericValue)) {
-                newReadings[time] = numericValue;
+                // Calculate actual datetime: readings go back (length-1) to 0 hours from transmit
+                const hoursBack = timeKeys.length - 1 - i;
+                const readingTime = transmitMoment.clone().subtract(hoursBack, 'hours');
+                const dateKey = readingTime.format('YYYY-MM-DD');
+                const hourKey = readingTime.format('HH:mm');
+
+                if (!readingsByDate[dateKey]) {
+                    readingsByDate[dateKey] = {};
+                }
+                readingsByDate[dateKey][hourKey] = numericValue;
             } else {
-                console.warn(`Invalid reading for time ${time}: ${level}`);
+                console.warn(`Invalid reading for time ${timeKey}: ${level}`);
             }
         }
 
-        // Get existing readings for this date or create empty object
-        const existingReadings = historicalData.data[year][month][date] || {};
+        // Process each date's readings
+        for (const [dateKey, readings] of Object.entries(readingsByDate)) {
+            const dateMoment = moment.utc(dateKey, 'YYYY-MM-DD');
+            const year = dateMoment.format('YYYY');
+            const month = dateMoment.format('MM');
 
-        // Merge new readings with existing ones (new readings will overwrite if same time)
-        const mergedReadings = { ...existingReadings, ...newReadings };
+            // Get or load historical data for this year
+            if (!yearDataCache[year]) {
+                try {
+                    const existing = await historicalStore.get(year);
+                    yearDataCache[year] = existing ? JSON.parse(existing) : createEmptyYearStructure(river, year);
+                } catch {
+                    yearDataCache[year] = createEmptyYearStructure(river, year);
+                }
+            }
 
-        // Calculate how many new readings were added
-        const newReadingsCount = Object.keys(newReadings).filter(time => !existingReadings[time]).length;
+            const historicalData = yearDataCache[year];
 
-        historicalData.data[year][month][date] = mergedReadings;
-        historicalData.metadata.totalReadings += newReadingsCount;
-        historicalData.metadata.lastUpdated = moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC';
+            // Ensure data structure exists
+            if (!historicalData.data[year]) {
+                historicalData.data[year] = {};
+            }
+            if (!historicalData.data[year][month]) {
+                historicalData.data[year][month] = {};
+            }
+
+            // Get existing readings for this date or create empty object
+            const existingReadings = historicalData.data[year][month][dateKey] || {};
+
+            // Merge new readings with existing ones
+            const mergedReadings = { ...existingReadings, ...readings };
+
+            // Calculate how many new readings were added
+            const newReadingsCount = Object.keys(readings).filter(time => !existingReadings[time]).length;
+
+            historicalData.data[year][month][dateKey] = mergedReadings;
+            historicalData.metadata.totalReadings += newReadingsCount;
+            historicalData.metadata.lastUpdated = moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC';
+        }
     }
 
-    // Save updated historical data
-    await historicalStore.setJSON(year, historicalData);
+    // Sort and save all affected years
+    for (const [year, historicalData] of Object.entries(yearDataCache)) {
+        // Sort everything chronologically: years, months, dates
+        const sortedYears: Record<string, any> = {};
+        Object.keys(historicalData.data)
+            .sort()
+            .forEach(y => {
+                const sortedMonths: Record<string, any> = {};
+                Object.keys(historicalData.data[y])
+                    .sort((a, b) => parseInt(a) - parseInt(b))
+                    .forEach(m => {
+                        const sortedDates: Record<string, any> = {};
+                        Object.keys(historicalData.data[y][m])
+                            .sort()
+                            .forEach(d => {
+                                sortedDates[d] = historicalData.data[y][m][d];
+                            });
+                        sortedMonths[m] = sortedDates;
+                    });
+                sortedYears[y] = sortedMonths;
+            });
+        historicalData.data = sortedYears;
+
+        // Save updated historical data for this year
+        await historicalStore.setJSON(year, historicalData);
+    }
 }
 
 
