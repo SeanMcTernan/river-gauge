@@ -49,7 +49,7 @@ try {
           level: `${currentLevel} cm`,
           status: status,
           statusColor: statusColor,
-          percentage: Math.min(currentLevel, 100),
+          percentage: Math.min((currentLevel / 200) * 100, 100), // Percentage of 200cm max
           updated: "Just now",
           gradient: gradient
         };
@@ -139,7 +139,12 @@ const riverData = [wigwamData];
                   
                   <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
                     <div 
-                      class={`h-full bg-gradient-to-r ${river.gradient} rounded-full transition-all duration-500`}
+                      class={`h-full rounded-full transition-all duration-500 ${
+                        river.statusColor === 'green' ? 'bg-green-500' :
+                        river.statusColor === 'yellow' ? 'bg-yellow-500' :
+                        river.statusColor === 'red' ? 'bg-red-500' :
+                        'bg-gray-500'
+                      }`}
                       style={`width: ${river.percentage}%`}
                     ></div>
                   </div>
@@ -179,7 +184,12 @@ const riverData = [wigwamData];
                 
                 <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
                   <div 
-                    class={`h-full bg-gradient-to-r ${river.gradient} rounded-full transition-all duration-500`}
+                    class={`h-full rounded-full transition-all duration-500 ${
+                      river.statusColor === 'green' ? 'bg-green-500' :
+                      river.statusColor === 'yellow' ? 'bg-yellow-500' :
+                      river.statusColor === 'red' ? 'bg-red-500' :
+                      'bg-gray-500'
+                    }`}
                     style={`width: ${river.percentage}%`}
                   ></div>
                 </div>

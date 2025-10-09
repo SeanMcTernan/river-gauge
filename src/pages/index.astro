@@ -45,7 +45,7 @@ try {
           level: `${currentLevel} cm`,
           status: status,
           statusColor: statusColor,
-          percentage: Math.min(currentLevel, 100),
+          percentage: Math.min((currentLevel / 200) * 100, 100), // Percentage of 200cm max
           gradient: gradient
         };
       }
@@ -75,7 +75,7 @@ try {
           Real-time River Gauge Monitoring
         </h1>
         <p class="text-primaryWhite mt-4 mb-10">
-          Monitor water levels in real-time with our advanced river gauge system. Get accurate data for safety alerts, flood warnings, and water management planning.
+          A non-profit set up to monitor water levels in real-time across various rivers in North America.
         </p>
         <Button urlPath="/levels" text="View Current Levels" />
       </div>
@@ -94,7 +94,7 @@ try {
                 'border-primaryWhite/30'
               }`}>
                 <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-primaryWhite font-semibold text-lg">Wigwam River</h3>
+                  <h3 class="text-white font-semibold text-lg">Wigwam River</h3>
                   <span class={`px-3 py-1 rounded-full text-sm ${
                     wigwamData.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
                     wigwamData.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
@@ -109,7 +109,12 @@ try {
                   'text-gray-400'
                 }`}>{wigwamData.level}</div>
                 <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
-                  <div class={`h-full bg-gradient-to-r ${wigwamData.gradient} rounded-full`} style={`width: ${wigwamData.percentage}%`}></div>
+                  <div class={`h-full rounded-full ${
+                    wigwamData.statusColor === 'green' ? 'bg-green-500' :
+                    wigwamData.statusColor === 'yellow' ? 'bg-yellow-500' :
+                    wigwamData.statusColor === 'red' ? 'bg-red-500' :
+                    'bg-gray-500'
+                  }`} style={`width: ${wigwamData.percentage}%`}></div>
                 </div>
                 <p class="text-xs text-primaryTeal text-center mt-4">Click for detailed view</p>
               </div>
