@@ -14,7 +14,7 @@
 
     // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x202021); // primaryGray
+    scene.background = null; // Transparent background to show mesh behind
     scene.fog = new THREE.Fog(0x202021, 10, 60);
 
     // Camera
@@ -43,7 +43,7 @@
 
     // Create water surface with sphere particles using instancing
     const particleCount = 30000;
-    const width = 100;
+    const width = 200; // Wider to cover full viewport width at distance
     const depth = 100;
 
     // Sphere geometry for particles
@@ -128,7 +128,7 @@
     
     function createFlowRipple() {
       flowRipples.push({
-        x: (Math.random() - 0.5) * width * 0.8,
+        x: (Math.random() - 0.5) * width * 0.9,
         z: depth / 2, // Start at back
         strength: 0.4,
         speed: 0.15
