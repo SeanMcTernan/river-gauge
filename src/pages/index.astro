@@ -1,6 +1,58 @@
 ---
+export const prerender = false;
+
 import Layout from '../layouts/Layout.astro';
 import Button from "../components/Button.astro";
+
+// Fetch real data for Wigwam River
+let wigwamData = {
+  level: "Loading...",
+  status: "Unknown",
+  statusColor: "gray",
+  percentage: 0,
+  gradient: "from-gray-400 to-gray-500"
+};
+
+try {
+  const context = import.meta.env.CONTEXT || 'production';
+  const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
+  const response = await fetch(`${apiUrl}/latestlevels?wigwam`);
+  if (response.ok) {
+    const data = await response.json();
+    if (data?.levels && typeof data.levels === 'object') {
+      const levelValues = Object.values(data.levels);
+      if (levelValues.length > 0) {
+        const levelString = levelValues[0] as string;
+        const currentLevel = parseInt(levelString.replace('cm', ''));
+      
+        let status, statusColor, gradient;
+        if (currentLevel > 150) {
+          status = "High";
+          statusColor = "red";
+          gradient = "from-red-400 to-red-500";
+        } else if (currentLevel >= 100) {
+          status = "Running";
+          statusColor = "green";
+          gradient = "from-green-400 to-green-500";
+        } else {
+          status = "Low";
+          statusColor = "yellow";
+          gradient = "from-yellow-400 to-yellow-500";
+        }
+        
+        wigwamData = {
+          level: `${currentLevel} cm`,
+          status: status,
+          statusColor: statusColor,
+          percentage: Math.min(currentLevel, 100),
+          gradient: gradient
+        };
+      }
+    }
+  }
+} catch (error) {
+  console.error('Error fetching Wigwam data:', error);
+}
 ---
 
 <Layout
@@ -26,41 +78,35 @@ import Button from "../components/Button.astro";
         <!-- River Gauge Visualization -->
         <div class="bg-primaryGray/20 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20">
           <div class="space-y-6">
-            <!-- Wigwam River -->
-            <div class="bg-primaryGray/40 rounded-xl p-6 border border-primaryTeal/30">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-primaryWhite font-semibold text-lg">Wigwam River</h3>
-                <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">Normal</span>
+            <!-- Wigwam River (Real Data) -->
+            <a href="/river/wigwam" class="block">
+              <div class={`bg-primaryGray/40 rounded-xl p-6 border transition-all duration-300 hover:border-primaryTeal/50 hover:transform hover:scale-105 ${
+                wigwamData.statusColor === 'green' ? 'border-green-500/30' :
+                wigwamData.statusColor === 'yellow' ? 'border-yellow-500/30' :
+                wigwamData.statusColor === 'red' ? 'border-red-500/30' :
+                'border-primaryWhite/30'
+              }`}>
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-primaryWhite font-semibold text-lg">Wigwam River</h3>
+                  <span class={`px-3 py-1 rounded-full text-sm ${
+                    wigwamData.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
+                    wigwamData.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                    wigwamData.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
+                    'bg-gray-500/20 text-gray-300'
+                  }`}>{wigwamData.status}</span>
+                </div>
+                <div class={`text-3xl font-bold mb-2 ${
+                  wigwamData.statusColor === 'green' ? 'text-green-400' :
+                  wigwamData.statusColor === 'yellow' ? 'text-yellow-400' :
+                  wigwamData.statusColor === 'red' ? 'text-red-400' :
+                  'text-gray-400'
+                }`}>{wigwamData.level}</div>
+                <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
+                  <div class={`h-full bg-gradient-to-r ${wigwamData.gradient} rounded-full`} style={`width: ${wigwamData.percentage}%`}></div>
+                </div>
+                <p class="text-xs text-primaryTeal text-center mt-4">Click for detailed view</p>
               </div>
-              <div class="text-3xl font-bold text-primaryTeal mb-2">4.2 ft</div>
-              <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-primaryTeal to-primaryBlue rounded-full" style="width: 42%"></div>
-              </div>
-            </div>
-
-            <!-- Pine Creek -->
-            <div class="bg-primaryGray/40 rounded-xl p-6 border border-yellow-500/30">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-primaryWhite font-semibold text-lg">Pine Creek</h3>
-                <span class="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Watch</span>
-              </div>
-              <div class="text-3xl font-bold text-yellow-400 mb-2">6.8 ft</div>
-              <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-full" style="width: 68%"></div>
-              </div>
-            </div>
-
-            <!-- Mill River -->
-            <div class="bg-primaryGray/40 rounded-xl p-6 border border-primaryTeal/30">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-primaryWhite font-semibold text-lg">Mill River</h3>
-                <span class="px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">Normal</span>
-              </div>
-              <div class="text-3xl font-bold text-primaryTeal mb-2">3.1 ft</div>
-              <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-primaryTeal to-primaryBlue rounded-full" style="width: 31%"></div>
-              </div>
-            </div>
+            </a>
           </div>
         </div>
       </div>

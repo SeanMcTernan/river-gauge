@@ -146,6 +146,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
   pageTitle={`${riverName} - Current Level`}
   pageDescription={`Real-time water level monitoring for ${riverName}. Current level: ${currentLevel || 'Loading...'}cm`}
 >
+  <div class="mesh-background-full">
   <div class="container mx-auto px-6 py-8">
     <!-- Back Navigation -->
     <div class="mb-8">
@@ -271,6 +272,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
       </div>
     </div>
   </div>
+  </div>
 </Layout>
 
 <script>
@@ -279,3 +281,47 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
     window.location.reload();
   }, 5 * 60 * 1000);
 </script>
+
+<style>
+  /* Full-page mesh background */
+  .mesh-background-full {
+    min-height: 100vh;
+    position: relative;
+    background-color: rgba(51, 149, 173, 0.05);
+    background-image: 
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Gradient fade overlay to fade mesh at top */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 400px;
+    background: linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 50%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Side fade overlays */
+  .mesh-background-full::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mesh-background-full > * {
+    position: relative;
+    z-index: 1;
+  }
+</style>
