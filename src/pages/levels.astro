@@ -15,8 +15,9 @@ let wigwamData = {
 };
 
 try {
-  // Use the correct API URL for local development
-  const apiUrl = import.meta.env.DEV ? 'http://localhost:58111' : (Astro.site || 'https://your-site.netlify.app');
+  // Use Netlify CONTEXT to determine environment
+  const context = import.meta.env.CONTEXT || 'production';
+  const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
   const response = await fetch(`${apiUrl}/latestlevels?wigwam`);
   if (response.ok) {
     const data = await response.json();
@@ -29,22 +30,18 @@ try {
       
         // Determine status based on level
         let status, statusColor, gradient;
-        if (currentLevel > 80) {
+        if (currentLevel > 150) {
           status = "High";
           statusColor = "red";
           gradient = "from-red-400 to-red-500";
-        } else if (currentLevel > 60) {
-          status = "Watch";
-          statusColor = "yellow";
-          gradient = "from-yellow-400 to-yellow-500";
-        } else if (currentLevel < 20) {
-          status = "Low";
-          statusColor = "blue";
-          gradient = "from-blue-400 to-blue-500";
-        } else {
-          status = "Normal";
+        } else if (currentLevel >= 100) {
+          status = "Medium";
           statusColor = "green";
-          gradient = "from-primaryTeal to-primaryBlue";
+          gradient = "from-green-400 to-green-500";
+        } else {
+          status = "Low";
+          statusColor = "orange";
+          gradient = "from-orange-400 to-orange-500";
         }
         
         wigwamData = {
@@ -167,9 +164,9 @@ const riverData = [wigwamData, ...otherRiversData];
                     </h3>
                     <span class={`px-3 py-1 rounded-full text-sm ${
                       river.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
-                      river.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                      river.statusColor === 'orange' ? 'bg-orange-500/20 text-orange-300' :
                       river.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
-                      'bg-blue-500/20 text-blue-300'
+                      'bg-gray-500/20 text-gray-300'
                     }`}>
                       {river.status}
                     </span>
@@ -177,10 +174,10 @@ const riverData = [wigwamData, ...otherRiversData];
                   
                   <div class="mb-4">
                     <div class={`text-3xl font-bold mb-2 ${
-                      river.statusColor === 'green' ? 'text-primaryTeal' :
-                      river.statusColor === 'yellow' ? 'text-yellow-400' :
+                      river.statusColor === 'green' ? 'text-green-400' :
+                      river.statusColor === 'orange' ? 'text-orange-400' :
                       river.statusColor === 'red' ? 'text-red-400' :
-                      'text-blue-400'
+                      'text-gray-400'
                     }`}>
                       {river.level}
                     </div>
@@ -221,9 +218,9 @@ const riverData = [wigwamData, ...otherRiversData];
                   <h3 class="text-primaryWhite font-semibold text-lg">{river.name}</h3>
                   <span class={`px-3 py-1 rounded-full text-sm ${
                     river.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
-                    river.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                    river.statusColor === 'orange' ? 'bg-orange-500/20 text-orange-300' :
                     river.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
-                    'bg-blue-500/20 text-blue-300'
+                    'bg-gray-500/20 text-gray-300'
                   }`}>
                     {river.status}
                   </span>
@@ -231,10 +228,10 @@ const riverData = [wigwamData, ...otherRiversData];
                 
                 <div class="mb-4">
                   <div class={`text-3xl font-bold mb-2 ${
-                    river.statusColor === 'green' ? 'text-primaryTeal' :
-                    river.statusColor === 'yellow' ? 'text-yellow-400' :
+                    river.statusColor === 'green' ? 'text-green-400' :
+                    river.statusColor === 'orange' ? 'text-orange-400' :
                     river.statusColor === 'red' ? 'text-red-400' :
-                    'text-blue-400'
+                    'text-gray-400'
                   }`}>
                     {river.level}
                   </div>

@@ -14,10 +14,13 @@ let error: string | null = null;
 // Fetch historical data
 let historicalData: any = null;
 let chartData: any = null;
+let change24h: number | null = null;
+let monthlyAvg: number | null = null;
 
 try {
-  // Use the correct API URL for local development
-  const apiUrl = import.meta.env.DEV ? 'http://localhost:8888' : (Astro.site || 'https://digitalflowgauge.com');
+  // Use Netlify CONTEXT to determine environment
+  const context = import.meta.env.CONTEXT || 'production';
+  const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
   const response = await fetch(`${apiUrl}/latestlevels?${river}`);
   if (response.ok) {
     latestData = await response.json();
@@ -75,16 +78,49 @@ try {
           fillcolor: 'rgba(51, 149, 173, 0.25)'
         };
         
+        // Calculate 24h change
+        if (combined.length >= 2 && currentLevel !== null) {
+          const now = new Date();
+          const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          
+          // Find the reading closest to 24h ago
+          let closest24hReading = combined[0];
+          let minDiff = Math.abs(combined[0].date.getTime() - oneDayAgo.getTime());
+          
+          for (const reading of combined) {
+            const diff = Math.abs(reading.date.getTime() - oneDayAgo.getTime());
+            if (diff < minDiff) {
+              minDiff = diff;
+              closest24hReading = reading;
+            }
+          }
+          
+          change24h = currentLevel - closest24hReading.level;
+        }
+        
+        // Calculate monthly average
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const monthReadings = combined.filter(reading => {
+          return reading.date.getMonth() === currentMonth && 
+                 reading.date.getFullYear() === currentYear;
+        });
+        
+        if (monthReadings.length > 0) {
+          const sum = monthReadings.reduce((acc, reading) => acc + reading.level, 0);
+          monthlyAvg = Math.round(sum / monthReadings.length);
+        }
+        
         console.log('Chart data created:', chartData);
+        console.log('24h change:', change24h, 'Monthly avg:', monthlyAvg);
       }
     }
   }
 } catch (e: any) {
   error = e.message;
-  // Fallback data for development
-  if (river === 'wigwam') {
-    currentLevel = 35; // 35cm as requested
-  }
+  // Leave currentLevel as null to show "level unavailable"
 }
 
 // River display names
@@ -98,10 +134,9 @@ const riverName = river ? (riverNames[river] || river) : 'Unknown River';
 
 // Determine status based on level
 const getStatus = (level) => {
-  if (level > 80) return { status: 'High', color: 'red' };
-  if (level > 60) return { status: 'Watch', color: 'yellow' };
-  if (level < 20) return { status: 'Low', color: 'blue' };
-  return { status: 'Normal', color: 'green' };
+  if (level > 150) return { status: 'High', color: 'red' };
+  if (level >= 100) return { status: 'Medium', color: 'green' };
+  return { status: 'Low', color: 'orange' };
 };
 
 const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown', color: 'gray' };
@@ -129,7 +164,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
     <div class="max-w-4xl mx-auto">
       <!-- River Header -->
       <div class="text-center mb-12">
-        <h1 class="text-4xl lg:text-6xl font-bold text-white mb-4">
+        <h1 class="text-4xl lg:text-6xl font-bold text-primaryWhite mb-4">
           {riverName}
         </h1>
         <p class="text-xl text-primaryWhite">
@@ -144,9 +179,8 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
             <div class="mb-6">
               <span class={`px-4 py-2 rounded-full text-lg font-medium ${
                 statusInfo.color === 'green' ? 'bg-green-500/20 text-green-300' :
-                statusInfo.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                statusInfo.color === 'orange' ? 'bg-orange-500/20 text-orange-300' :
                 statusInfo.color === 'red' ? 'bg-red-500/20 text-red-300' :
-                statusInfo.color === 'blue' ? 'bg-blue-500/20 text-blue-300' :
                 'bg-gray-500/20 text-gray-300'
               }`}>
                 {statusInfo.status}
@@ -155,10 +189,9 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
             
             <!-- Big Level Display -->
             <div class={`text-8xl lg:text-9xl font-bold mb-4 ${
-              statusInfo.color === 'green' ? 'text-primaryTeal' :
-              statusInfo.color === 'yellow' ? 'text-yellow-400' :
+              statusInfo.color === 'green' ? 'text-green-400' :
+              statusInfo.color === 'orange' ? 'text-orange-400' :
               statusInfo.color === 'red' ? 'text-red-400' :
-              statusInfo.color === 'blue' ? 'text-blue-400' :
               'text-gray-400'
             }`}>
               {currentLevel}
@@ -190,7 +223,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
       <!-- Historical Data Chart -->
       {chartData && (
         <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
-          <h2 class="text-2xl font-bold text-white mb-6 text-center">Historical Water Levels</h2>
+          <h2 class="text-2xl font-bold text-primaryWhite mb-6 text-center">Historical Water Levels</h2>
           <PlotlyChart chartData={chartData} />
         </div>
       )}
@@ -200,39 +233,41 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
         <!-- 24 Hour Change -->
         <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
           <h3 class="text-primaryWhite font-semibold text-lg mb-2">24h Change</h3>
-          <div class="text-2xl font-bold text-primaryTeal">+2.3 cm</div>
-          <p class="text-sm text-primaryWhite/60">Since yesterday</p>
+          {change24h !== null ? (
+            <>
+              <div class={`text-2xl font-bold ${
+                change24h > 0 ? 'text-green-400' :
+                change24h < 0 ? 'text-red-400' :
+                'text-primaryWhite'
+              }`}>
+                {change24h > 0 ? '+' : ''}{change24h} cm
+              </div>
+              <p class="text-sm text-primaryWhite/60">Since yesterday</p>
+            </>
+          ) : (
+            <div class="text-2xl font-bold text-primaryWhite/40">N/A</div>
+          )}
         </div>
 
         <!-- Average Level -->
         <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
           <h3 class="text-primaryWhite font-semibold text-lg mb-2">Monthly Avg</h3>
-          <div class="text-2xl font-bold text-primaryTeal">32.1 cm</div>
-          <p class="text-sm text-primaryWhite/60">October average</p>
+          {monthlyAvg !== null ? (
+            <>
+              <div class="text-2xl font-bold text-primaryTeal">{monthlyAvg} cm</div>
+              <p class="text-sm text-primaryWhite/60">{new Date().toLocaleString('default', { month: 'long' })} average</p>
+            </>
+          ) : (
+            <div class="text-2xl font-bold text-primaryWhite/40">N/A</div>
+          )}
         </div>
 
         <!-- Alert Level -->
         <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
           <h3 class="text-primaryWhite font-semibold text-lg mb-2">Alert Level</h3>
-          <div class="text-2xl font-bold text-yellow-400">85 cm</div>
-          <p class="text-sm text-primaryWhite/60">Flood warning</p>
+          <div class="text-2xl font-bold text-red-400">150 cm</div>
+          <p class="text-sm text-primaryWhite/60">High water warning</p>
         </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a 
-          href={`/historical?river=${river}`}
-          class="bg-primaryTeal hover:bg-primaryBlue text-white px-8 py-3 rounded-lg font-semibold transition-colors text-center"
-        >
-          View Historical Data
-        </a>
-        <a 
-          href={`/alerts?river=${river}`}
-          class="border border-primaryTeal text-primaryTeal hover:bg-primaryTeal hover:text-white px-8 py-3 rounded-lg font-semibold transition-colors text-center"
-        >
-          Set Up Alerts
-        </a>
       </div>
     </div>
   </div>
