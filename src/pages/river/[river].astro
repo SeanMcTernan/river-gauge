@@ -17,7 +17,7 @@ let chartData: any = null;
 
 try {
   // Use the correct API URL for local development
-  const apiUrl = import.meta.env.DEV ? 'http://localhost:58111' : (Astro.site || 'https://your-site.netlify.app');
+  const apiUrl = import.meta.env.DEV ? 'http://localhost:8888' : (Astro.site || 'https://digitalflowgauge.com');
   const response = await fetch(`${apiUrl}/latestlevels?${river}`);
   if (response.ok) {
     latestData = await response.json();
@@ -70,7 +70,9 @@ try {
           mode: 'lines+markers',
           name: 'Water Level',
           line: { color: '#3395ad', width: 2 },
-          marker: { color: '#66cbea', size: 4 }
+          marker: { color: '#66cbea', size: 4 },
+          fill: 'tozeroy',
+          fillcolor: 'rgba(51, 149, 173, 0.25)'
         };
         
         console.log('Chart data created:', chartData);
