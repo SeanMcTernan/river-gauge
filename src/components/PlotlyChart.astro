@@ -142,8 +142,17 @@ const { chartData } = Astro.props;
       window.Plotly.newPlot('plotly-chart', [chartData], layout, config);
       console.log('✅ Chart created successfully!');
       
-      // Enforce date range limits on pan/zoom
+      // Disable mouse wheel zoom but keep pinch-to-zoom
       const chartDiv = document.getElementById('plotly-chart');
+      chartDiv.addEventListener('wheel', function(e) {
+        // Only prevent if it's a mouse wheel (not a pinch gesture)
+        // Pinch gestures have e.ctrlKey = true
+        if (!e.ctrlKey) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Enforce date range limits on pan/zoom
       chartDiv.on('plotly_relayout', function(eventData) {
         if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
           const newStart = new Date(eventData['xaxis.range[0]']);
