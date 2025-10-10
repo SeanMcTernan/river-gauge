@@ -9,6 +9,7 @@ const { river } = Astro.params;
 // Fetch data from historical endpoint only
 let currentLevel: number | null = null;
 let error: string | null = null;
+let transmitTime: string | null = null;
 
 // Fetch historical data
 let historicalData: any = null;
@@ -20,6 +21,19 @@ try {
   // Use Netlify CONTEXT to determine environment
   const context = import.meta.env.CONTEXT || 'production';
   const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
+
+  // Fetch latest levels to get transmit time
+  try {
+    const latestResponse = await fetch(`${apiUrl}/latestlevels?${river}`);
+    if (latestResponse.ok) {
+      const latestData = await latestResponse.json();
+      if (latestData?.metadata?.transmitTime?.local) {
+        transmitTime = latestData.metadata.transmitTime.local;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to fetch latest levels metadata:', e);
+  }
 
   // Fetch historical data
   const historicalResponse = await fetch(`${apiUrl}/historicallevels?${river}`);
@@ -209,7 +223,7 @@ const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown',
             </div>
             
             <p class="text-primaryWhite/70 text-lg">
-              Updates Every 12 Hours | Last updated: {new Date().toLocaleString()}
+              Updates Every 12 Hours | Last updated: {transmitTime || 'Unknown'} MST
             </p>
           </>
         ) : (
