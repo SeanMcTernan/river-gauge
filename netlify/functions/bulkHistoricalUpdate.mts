@@ -29,7 +29,7 @@ import moment from 'moment-timezone';
  *       }
  *     }
  *   },
- *   "merge": true // optional: true to merge with existing data, false to replace (default: true)
+ *   "merge": false // optional: true to merge with existing data, false to replace (default: false)
  * }
  * 
  * Authentication: Requires x-internal-token header
@@ -77,7 +77,7 @@ export default async (req: Request, context: Context) => {
             });
         }
 
-        const merge = payload.merge !== false; // default to true
+        const merge = payload.merge === true; // default to false (replace)
         const result = await bulkUpdateHistoricalData(river, payload.data, merge);
 
         return new Response(JSON.stringify({
@@ -85,7 +85,7 @@ export default async (req: Request, context: Context) => {
             river: river,
             yearsUpdated: result.yearsUpdated,
             totalReadingsAdded: result.totalReadingsAdded,
-            mergeMode: merge
+            mode: merge ? "merge" : "replace"
         }), {
             status: 200,
             headers: { "Content-Type": "application/json" }
