@@ -139,7 +139,38 @@ const { chartData } = Astro.props;
         }
       };
 
-      window.Plotly.newPlot('plotly-chart', [chartData], layout, config);
+      // Create frames for animation - progressively reveal data points
+      const totalPoints = chartData.x.length;
+      const animationSteps = 50; // Number of frames
+      const pointsPerStep = Math.ceil(totalPoints / animationSteps);
+      
+      // Start with first few points
+      const initialData = {
+        ...chartData,
+        x: chartData.x.slice(0, 1),
+        y: chartData.y.slice(0, 1)
+      };
+      
+      // Create chart with initial data
+      window.Plotly.newPlot('plotly-chart', [initialData], layout, config).then(() => {
+        // Progressively add more points
+        let currentIndex = 1;
+        const animationInterval = setInterval(() => {
+          currentIndex += pointsPerStep;
+          
+          if (currentIndex >= totalPoints) {
+            currentIndex = totalPoints;
+            clearInterval(animationInterval);
+          }
+          
+          const partialData = {
+            x: [chartData.x.slice(0, currentIndex)],
+            y: [chartData.y.slice(0, currentIndex)]
+          };
+          
+          window.Plotly.restyle('plotly-chart', partialData);
+        }, 30); // 30ms per frame for smooth animation
+      });
       console.log('✅ Chart created successfully!');
       
       // Disable mouse wheel zoom but keep pinch-to-zoom
