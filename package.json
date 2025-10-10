@@ -9,6 +9,7 @@
         "preview": "astro preview"
     },
     "dependencies": {
+        "@astrojs/netlify": "^5.0.0",
         "@netlify/blobs": "^8.0.1",
         "@netlify/functions": "^2.8.1",
         "astro": "^4.0.0",
