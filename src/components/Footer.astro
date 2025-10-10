@@ -1,0 +1,20 @@
+---
+const today = new Date();
+import FooterLink from "./Links.astro";
+---
+
+<footer class="bg-primaryGray text-secondaryGray py-4 w-full">
+  <nav class="flex justify-center items-center w-full mb-4">
+    <div class="internal-links hidden sm:flex space-x-8 lg:space-x-16">
+      <FooterLink href="/levels" class="text-primaryWhite hover:text-primaryTeal"
+        >Current Levels</FooterLink
+      >
+      <FooterLink href="/about" class="text-primaryWhite hover:text-primaryTeal"
+        >About</FooterLink
+      >
+    </div>
+  </nav>
+  <div class="text-center mb-4 text-primaryWhite">
+    &copy; {today.getFullYear()} Digital Flow Gauge
+  </div>
+</footer>
