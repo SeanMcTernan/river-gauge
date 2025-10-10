@@ -19,12 +19,9 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
-# jetbrains setting folder
-.idea/
-
 # Local Netlify folder
 .netlify
 
-# Visual Studio Code
-
+# Windsurf
+river_gauge.code-workspace
 .code-workspace

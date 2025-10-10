@@ -1,0 +1,426 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import PlotlyChart from '../../components/PlotlyChart.astro';
+
+const { river } = Astro.params;
+
+// Fetch data from historical endpoint only
+let currentLevel: number | null = null;
+let error: string | null = null;
+
+// Fetch historical data
+let historicalData: any = null;
+let chartData: any = null;
+let change24h: number | null = null;
+let monthlyAvg: number | null = null;
+
+try {
+  // Use Netlify CONTEXT to determine environment
+  const context = import.meta.env.CONTEXT || 'production';
+  const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
+
+  // Fetch historical data
+  const historicalResponse = await fetch(`${apiUrl}/historicallevels?${river}`);
+  if (historicalResponse.ok) {
+    historicalData = await historicalResponse.json();
+    console.log('Historical data received:', historicalData);
+    
+    // Process historical data for Plotly
+    if (historicalData?.data) {
+      const dates: string[] = [];
+      const levels: number[] = [];
+      
+      // Extract data from the nested structure
+      for (const year in historicalData.data) {
+        for (const month in historicalData.data[year]) {
+          for (const date in historicalData.data[year][month]) {
+            for (const hour in historicalData.data[year][month][date]) {
+              const level = historicalData.data[year][month][date][hour];
+              const dateTime = `${date} ${hour}:00`;
+              dates.push(dateTime);
+              levels.push(typeof level === 'number' ? level : parseInt(level.toString()));
+            }
+          }
+        }
+      }
+      
+      console.log('Processed data points:', dates.length);
+      
+      if (dates.length > 0) {
+        // Sort by date
+        const combined = dates.map((date, i) => ({ date: new Date(date), level: levels[i] }))
+          .sort((a, b) => a.date.getTime() - b.date.getTime());
+        
+        // Get the most recent reading as current level
+        const mostRecentReading = combined[combined.length - 1];
+        currentLevel = mostRecentReading.level;
+        
+        chartData = {
+          x: combined.map(item => item.date.toISOString()),
+          y: combined.map(item => item.level),
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Water Level',
+          line: { color: '#3395ad', width: 2 },
+          marker: { color: '#66cbea', size: 4 },
+          fill: 'tozeroy',
+          fillcolor: 'rgba(51, 149, 173, 0.25)'
+        };
+        
+        // Calculate 24h change: Compare most recent reading to reading from 24 hours before
+        if (combined.length >= 2 && currentLevel !== null) {
+          // Most recent reading time
+          const mostRecentTime = mostRecentReading.date;
+          const exactlyOneDayBefore = new Date(mostRecentTime.getTime() - 24 * 60 * 60 * 1000);
+          
+          // Find the historical reading closest to exactly 24 hours before the most recent reading
+          let closest24hReading = combined[0];
+          let minDiff = Math.abs(combined[0].date.getTime() - exactlyOneDayBefore.getTime());
+          
+          for (const reading of combined) {
+            const diff = Math.abs(reading.date.getTime() - exactlyOneDayBefore.getTime());
+            if (diff < minDiff) {
+              minDiff = diff;
+              closest24hReading = reading;
+            }
+          }
+          
+          // Calculate change: most recent reading - reading from 24h before that
+          change24h = currentLevel - closest24hReading.level;
+          console.log(`24h change: ${currentLevel}cm (${mostRecentTime.toISOString()}) - ${closest24hReading.level}cm (${closest24hReading.date.toISOString()}) = ${change24h}cm`);
+        }
+        
+        // Calculate monthly average
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        
+        const monthReadings = combined.filter(reading => {
+          return reading.date.getMonth() === currentMonth && 
+                 reading.date.getFullYear() === currentYear;
+        });
+        
+        if (monthReadings.length > 0) {
+          const sum = monthReadings.reduce((acc, reading) => acc + reading.level, 0);
+          monthlyAvg = Math.round(sum / monthReadings.length);
+        }
+        
+        console.log('Chart data created:', chartData);
+        console.log('24h change:', change24h, 'Monthly avg:', monthlyAvg);
+      }
+    }
+  }
+} catch (e: any) {
+  error = e.message;
+  // Leave currentLevel as null to show "level unavailable"
+}
+
+// River display names
+const riverNames: Record<string, string> = {
+  'wigwam': 'Wigwam River',
+  'pine-creek': 'Pine Creek',
+  'mill-river': 'Mill River'
+};
+
+const riverName = river ? (riverNames[river] || river) : 'Unknown River';
+
+// Determine status based on level
+const getStatus = (level) => {
+  if (level > 150) return { status: 'High', color: 'red' };
+  if (level >= 100) return { status: 'Running', color: 'green' };
+  return { status: 'Low', color: 'yellow' };
+};
+
+const statusInfo = currentLevel ? getStatus(currentLevel) : { status: 'Unknown', color: 'gray' };
+---
+
+<Layout
+  pageTitle={`${riverName} - Current Level`}
+  pageDescription={`Real-time water level monitoring for ${riverName}. Current level: ${currentLevel || 'Loading...'}cm`}
+>
+  <div class="mesh-background-full">
+  <div class="container mx-auto px-6 py-8">
+    <!-- Back Navigation -->
+    <div class="mb-8">
+      <a 
+        href="/levels" 
+        class="inline-flex items-center text-primaryTeal hover:text-primaryBlue transition-colors"
+      >
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to All Levels
+      </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto">
+      <!-- River Header -->
+      <div class="text-center mb-12">
+        <h1 class="text-4xl lg:text-6xl font-bold text-primaryWhite mb-4">
+          {riverName}
+        </h1>
+        <p class="text-xl text-primaryWhite">
+          
+        </p>
+      </div>
+
+      <!-- Current Level Display -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-12 border border-primaryWhite/20 text-center mb-8">
+        {currentLevel !== null ? (
+          <>
+            <div class="mb-6">
+              <span class={`px-4 py-2 rounded-full text-lg font-medium ${
+                statusInfo.color === 'green' ? 'bg-green-500/20 text-green-300' :
+                statusInfo.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                statusInfo.color === 'red' ? 'bg-red-500/20 text-red-300' :
+                'bg-gray-500/20 text-gray-300'
+              }`}>
+                {statusInfo.status}
+              </span>
+            </div>
+            
+            <!-- Big Level Display -->
+            <div class={`text-8xl lg:text-9xl font-bold mb-6 ${
+              statusInfo.color === 'green' ? 'text-green-400' :
+              statusInfo.color === 'yellow' ? 'text-yellow-400' :
+              statusInfo.color === 'red' ? 'text-red-400' :
+              'text-gray-400'
+            }`}>
+              {currentLevel}
+              <span class="text-4xl lg:text-5xl text-primaryWhite ml-2">cm</span>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="max-w-md mx-auto mb-6">
+              <div class="h-3 bg-secondaryGray rounded-full overflow-hidden">
+                <div 
+                  class={`h-full rounded-full transition-all duration-500 ${
+                    statusInfo.color === 'green' ? 'bg-green-500' :
+                    statusInfo.color === 'yellow' ? 'bg-yellow-500' :
+                    statusInfo.color === 'red' ? 'bg-red-500' :
+                    'bg-gray-500'
+                  }`}
+                  style={`width: ${Math.min((currentLevel / 200) * 100, 100)}%`}
+                ></div>
+              </div>
+            </div>
+            
+            <p class="text-primaryWhite/70 text-lg">
+              Updates Every 12 Hours | Last updated: {new Date().toLocaleString()}
+            </p>
+          </>
+        ) : (
+          <div class="text-center">
+            {error ? (
+              <>
+                <div class="text-6xl text-red-400 mb-4">⚠️</div>
+                <h2 class="text-2xl text-red-300 mb-2">Error Loading Data</h2>
+                <p class="text-primaryWhite/70">{error}</p>
+              </>
+            ) : (
+              <>
+                <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primaryTeal mx-auto mb-4"></div>
+                <p class="text-primaryWhite text-xl">Loading current level...</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <!-- Historical Data Chart -->
+      {chartData && (
+        <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+          <h2 class="text-2xl font-bold text-primaryWhite mb-6 text-center">Historical Water Levels</h2>
+          <PlotlyChart chartData={chartData} />
+        </div>
+      )}
+
+      <!-- Additional Info Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- 24 Hour Change -->
+        <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
+          <h3 class="text-primaryWhite font-semibold text-lg mb-2">24h Change</h3>
+          {change24h !== null ? (
+            <>
+              <div class={`text-2xl font-bold ${
+                change24h > 0 ? 'text-green-400' :
+                change24h < 0 ? 'text-red-400' :
+                'text-primaryWhite'
+              }`}>
+                {change24h > 0 ? '+' : ''}{change24h} cm
+              </div>
+              <p class="text-sm text-primaryWhite/60">Since yesterday</p>
+            </>
+          ) : (
+            <div class="text-2xl font-bold text-primaryWhite/40">N/A</div>
+          )}
+        </div>
+
+        <!-- Average Level -->
+        <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
+          <h3 class="text-primaryWhite font-semibold text-lg mb-2">Monthly Avg</h3>
+          {monthlyAvg !== null ? (
+            <>
+              <div class="text-2xl font-bold text-primaryTeal">{monthlyAvg} cm</div>
+              <p class="text-sm text-primaryWhite/60">{new Date().toLocaleString('default', { month: 'long' })} average</p>
+            </>
+          ) : (
+            <div class="text-2xl font-bold text-primaryWhite/40">N/A</div>
+          )}
+        </div>
+
+        <!-- Alert Level -->
+        <div class="bg-primaryGray/30 backdrop-blur-sm rounded-xl p-6 border border-primaryWhite/10">
+          <h3 class="text-primaryWhite font-semibold text-lg mb-2">Alert Level</h3>
+          <div class="text-2xl font-bold text-red-400">150 cm</div>
+          <p class="text-sm text-primaryWhite/60">High water warning</p>
+        </div>
+      </div>
+
+      <!-- Location Map -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+        <h2 class="text-2xl font-bold text-primaryWhite mb-6 text-center">Gauge Location</h2>
+        <div id="map" class="w-full h-96 rounded-xl overflow-hidden"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</Layout>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+  // Initialize map when Leaflet is loaded
+  function initMap() {
+    if (typeof L !== 'undefined') {
+      const map = L.map('map').setView([49.284336, -114.954499], 13);
+      
+      // Add OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }).addTo(map);
+      
+      // Add marker at gauge location
+      const marker = L.marker([49.284336, -114.954499]).addTo(map);
+      marker.bindPopup('<div style="text-align: center;"><span style="color: #66cbea; font-weight: bold; font-size: 16px;">Wigwam River Gauge</span><br><span style="color: #bdbdbd;">Monitoring Station</span></div>').openPopup();
+    } else {
+      setTimeout(initMap, 100);
+    }
+  }
+  
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+  } else {
+    initMap();
+  }
+  
+  // Auto-refresh every 5 minutes
+  setInterval(() => {
+    window.location.reload();
+  }, 5 * 60 * 1000);
+</script>
+
+<style>
+  /* Map dark theme styling */
+  #map {
+    background-color: #202021 !important;
+  }
+
+  /* Map tiles - using default OpenStreetMap colors */
+  :global(.leaflet-tile-pane) {
+    /* No filter applied - standard map colors */
+  }
+
+  /* Style map controls */
+  :global(.leaflet-control-zoom a) {
+    background-color: rgba(32, 32, 33, 0.9) !important;
+    color: #3395ad !important;
+    border: 1px solid rgba(51, 149, 173, 0.3) !important;
+  }
+
+  :global(.leaflet-control-zoom a:hover) {
+    background-color: rgba(51, 149, 173, 0.3) !important;
+    color: #66cbea !important;
+  }
+
+  /* Style popup */
+  :global(.leaflet-popup-content-wrapper) {
+    background-color: rgba(32, 32, 33, 0.95) !important;
+    color: #e8eaed !important;
+    border: 1px solid rgba(51, 149, 173, 0.3) !important;
+    border-radius: 8px !important;
+  }
+
+  :global(.leaflet-popup-tip) {
+    background-color: rgba(32, 32, 33, 0.95) !important;
+  }
+
+  :global(.leaflet-popup-close-button) {
+    color: #e8eaed !important;
+  }
+
+  :global(.leaflet-popup-close-button:hover) {
+    color: #3395ad !important;
+  }
+
+  /* Attribution styling */
+  :global(.leaflet-control-attribution) {
+    background-color: rgba(32, 32, 33, 0.8) !important;
+    color: #bdbdbd !important;
+  }
+
+  :global(.leaflet-control-attribution a) {
+    color: #3395ad !important;
+  }
+
+  /* Full-page mesh background */
+  .mesh-background-full {
+    min-height: 100vh;
+    position: relative;
+    background-color: rgba(51, 149, 173, 0.05);
+    background-image: 
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  /* Gradient fade overlay to fade mesh at top */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 400px;
+    background: linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 50%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Side fade overlays */
+  .mesh-background-full::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mesh-background-full > * {
+    position: relative;
+    z-index: 1;
+  }
+</style>

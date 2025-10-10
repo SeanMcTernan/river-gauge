@@ -1,0 +1,176 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import Button from "../components/Button.astro";
+import RiverAnimation from "../components/RiverAnimation.astro";
+
+// Fetch real data for Wigwam River
+let wigwamData = {
+  level: "Loading...",
+  status: "Unknown",
+  statusColor: "gray",
+  percentage: 0,
+  gradient: "from-gray-400 to-gray-500"
+};
+
+try {
+  const context = import.meta.env.CONTEXT || 'production';
+  const apiUrl = context === 'dev' ? 'http://localhost:8888' : 'https://digitalflowgauge.com';
+  const response = await fetch(`${apiUrl}/historicallevels?wigwam`);
+  if (response.ok) {
+    const data = await response.json();
+    if (data?.data && typeof data.data === 'object') {
+      // Extract all readings and find the most recent
+      const readings: { date: Date, level: number }[] = [];
+      
+      for (const year in data.data) {
+        for (const month in data.data[year]) {
+          for (const date in data.data[year][month]) {
+            for (const hour in data.data[year][month][date]) {
+              const level = data.data[year][month][date][hour];
+              const dateTime = `${date} ${hour}:00`;
+              readings.push({
+                date: new Date(dateTime),
+                level: typeof level === 'number' ? level : parseInt(level.toString())
+              });
+            }
+          }
+        }
+      }
+      
+      if (readings.length > 0) {
+        // Sort and get most recent reading
+        readings.sort((a, b) => a.date.getTime() - b.date.getTime());
+        const currentLevel = readings[readings.length - 1].level;
+      
+        let status, statusColor, gradient;
+        if (currentLevel > 150) {
+          status = "High";
+          statusColor = "red";
+          gradient = "from-red-400 to-red-500";
+        } else if (currentLevel >= 100) {
+          status = "Running";
+          statusColor = "green";
+          gradient = "from-green-400 to-green-500";
+        } else {
+          status = "Low";
+          statusColor = "yellow";
+          gradient = "from-yellow-400 to-yellow-500";
+        }
+        
+        wigwamData = {
+          level: `${currentLevel} cm`,
+          status: status,
+          statusColor: statusColor,
+          percentage: Math.min((currentLevel / 200) * 100, 100), // Percentage of 200cm max
+          gradient: gradient
+        };
+      }
+    }
+  }
+} catch (error) {
+  console.error('Error fetching Wigwam data:', error);
+}
+---
+
+<Layout
+  pageTitle="Home"
+  pageDescription="Real-time river gauge monitoring system providing accurate water level data for safety and planning."
+>
+  <!-- Static mesh background layer -->
+  <div class="mesh-background-full"></div>
+  
+  <!-- Animated water surface (on top of mesh) -->
+  <RiverAnimation />
+  
+  <main class="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4 h-full relative">
+    <div
+      class="flex flex-col justify-center items-start lg:items-end p-4 lg:mt-[-10rem] h-full"
+    >
+      <div class="max-w-lg lg:mr-0 mt-40">
+        <h1 class="text-white font-medium leading-tight text-4xl">
+          Real-time River Gauge Monitoring
+        </h1>
+        <p class="text-primaryWhite mt-4 mb-10">
+          A non-profit set up to monitor water levels in real-time across various rivers in North America.
+        </p>
+        <Button urlPath="/levels" text="View Current Levels" />
+      </div>
+    </div>
+    <div class="flex justify-center items-center p-4 h-full">
+      <div class="mt-2 ml-2 hidden sm:block w-4/5 h-4/5">
+        <!-- River Gauge Visualization -->
+        <div class="bg-primaryGray/20 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20">
+          <div class="space-y-6">
+            <!-- Wigwam River (Real Data) -->
+            <a href="/river/wigwam" class="block">
+              <div class={`bg-primaryGray/40 rounded-xl p-6 border transition-all duration-300 hover:border-primaryTeal/50 hover:transform hover:scale-105 ${
+                wigwamData.statusColor === 'green' ? 'border-green-500/30' :
+                wigwamData.statusColor === 'yellow' ? 'border-yellow-500/30' :
+                wigwamData.statusColor === 'red' ? 'border-red-500/30' :
+                'border-primaryWhite/30'
+              }`}>
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-white font-semibold text-lg">Wigwam River</h3>
+                  <span class={`px-3 py-1 rounded-full text-sm ${
+                    wigwamData.statusColor === 'green' ? 'bg-green-500/20 text-green-300' :
+                    wigwamData.statusColor === 'yellow' ? 'bg-yellow-500/20 text-yellow-300' :
+                    wigwamData.statusColor === 'red' ? 'bg-red-500/20 text-red-300' :
+                    'bg-gray-500/20 text-gray-300'
+                  }`}>{wigwamData.status}</span>
+                </div>
+                <div class={`text-3xl font-bold mb-2 ${
+                  wigwamData.statusColor === 'green' ? 'text-green-400' :
+                  wigwamData.statusColor === 'yellow' ? 'text-yellow-400' :
+                  wigwamData.statusColor === 'red' ? 'text-red-400' :
+                  'text-gray-400'
+                }`}>{wigwamData.level}</div>
+                <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
+                  <div class={`h-full rounded-full ${
+                    wigwamData.statusColor === 'green' ? 'bg-green-500' :
+                    wigwamData.statusColor === 'yellow' ? 'bg-yellow-500' :
+                    wigwamData.statusColor === 'red' ? 'bg-red-500' :
+                    'bg-gray-500'
+                  }`} style={`width: ${wigwamData.percentage}%`}></div>
+                </div>
+                <p class="text-xs text-primaryTeal text-center mt-4">Click for detailed view</p>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  /* Full-page mesh background */
+  .mesh-background-full {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    background-color: rgba(51, 149, 173, 0.09);
+    background-image: 
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    z-index: -20;
+    pointer-events: none;
+  }
+
+  /* Gradient fade overlay to fade mesh at top and bottom */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 40%, transparent 50%, transparent 50%, rgba(32, 32, 33, 0.7) 60%, rgba(32, 32, 33, 0.95) 80%, #202021 100%),
+      linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
