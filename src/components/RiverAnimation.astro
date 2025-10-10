@@ -30,7 +30,7 @@
     // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio * 2, 4));
     container.appendChild(renderer.domElement);
 
     // Teal color variants
@@ -42,7 +42,7 @@
     ];
 
     // Create water surface with sphere particles using instancing
-    const particleCount = 30000;
+    const particleCount = 60000;
     const width = 200; // Wider to cover full viewport width at distance
     const depth = 100;
 
