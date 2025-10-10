@@ -75,8 +75,9 @@ async function updateHistoricalData(river: string) {
         const readingsByDate: Record<string, Record<string, number>> = {};
 
         // The times array from levelUpdate goes backwards from transmit time
-        // Keys are just "HH:mm" format, sorted alphabetically
-        const timeKeys = Object.keys(latest.levels).sort();
+        // Keys are just "HH:mm" format - MUST preserve insertion order, not sort
+        // because times may wrap around midnight (e.g., 22:00, 23:00, 00:00, 01:00)
+        const timeKeys = Object.keys(latest.levels);
 
         for (let i = 0; i < timeKeys.length; i++) {
             const timeKey = timeKeys[i];
