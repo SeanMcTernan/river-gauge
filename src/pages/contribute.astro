@@ -1,0 +1,376 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import Button from "../components/Button.astro";
+---
+
+<Layout
+  pageTitle="Join Our Movement"
+  pageDescription="Contribute to our community-funded river  project. Social funding helps us maintain and expand real-time water level monitoring across North America."
+>
+  <!-- Fullscreen Intro Overlay -->
+  <div id="intro-overlay" class="intro-overlay">
+    <div class="intro-content">
+      <p id="phrase1" class="intro-phrase">This is Community-Funded...</p>
+      <p id="phrase2" class="intro-phrase">Contributions Help Cover Costs...</p>
+      <p id="phrase3" class="intro-phrase">We Rely On Users Like You.</p>
+    </div>
+    <div class="skip-hint">Click to continue</div>
+  </div>
+
+  <!-- Static mesh background layer -->
+  <div class="mesh-background-full"></div>
+
+  <main id="main-content" class="flex-grow relative main-content-hidden">
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+      <!-- Header Section -->
+      <div class="text-center mb-12">
+        <h1 class="text-white font-medium leading-tight text-4xl mb-4">
+          Get Involved
+        </h1>
+        <p class="text-primaryWhite text-lg max-w-2xl mx-auto">
+          Help us maintain and expand our network of real-time river monitoring stations across North America.
+        </p>
+      </div>
+
+      <!-- Mission Statement -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+        <h2 class="text-white font-semibold text-2xl mb-4">About This Project</h2>
+        <p class="text-primaryWhite mb-4">
+          This is a community-funded initiative providing accurate, real-time river level data
+          to help communities, outdoor enthusiasts, and emergency services make informed decisions about
+          water safety and planning.
+        </p>
+        <p class="text-primaryWhite">
+          Optional social funding helps us cover the costs of maintaining existing monitoring stations,
+          installing new gauges, and keeping this data freely available to everyone who needs it.
+          We rely on contributions from users like you to keep this service running.
+        </p>
+      </div>
+
+      <!-- How Social Funding Helps -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+        <h2 class="text-white font-semibold text-2xl mb-6">How Social Funding Helps</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-primaryTeal/20 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">Equipment Maintenance</h3>
+              <p class="text-primaryWhite text-sm">
+                Keep our sensors calibrated and functioning year round
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-primaryTeal/20 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21l7-7 4 4 7-7v9H3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">New Monitoring Stations</h3>
+              <p class="text-primaryWhite text-sm">
+                Expand coverage to more rivers and communities
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-primaryTeal/20 rounded-lg flex items-center justify-center">
+              <svg class="w-6 h-6 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">Server & Data Costs</h3>
+              <p class="text-primaryWhite text-sm">
+                Maintain reliable 24/7 access to real-time data
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Social Funding Options -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryTeal/30 mb-8">
+        <h2 class="text-white font-semibold text-2xl mb-6 text-center">Contribute To Projects</h2>
+        <p class="text-primaryWhite text-center mb-4">
+          This service is free to use and always will be. If you find it valuable, consider making
+          contributions through social funding to help cover operating costs.
+          Every contribution, no matter the size, helps us keep this community resource running.
+        </p>
+        <div class="flex flex-col items-center space-y-4">
+
+        </div>
+      </div>
+
+      <!-- Back to Home -->
+      <div class="text-center mt-12">
+        <Button urlPath="/" text="Back to Home" />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const overlay = document.getElementById('intro-overlay');
+    const mainContent = document.getElementById('main-content');
+    const phrase1 = document.getElementById('phrase1');
+    const phrase2 = document.getElementById('phrase2');
+    const phrase3 = document.getElementById('phrase3');
+
+    // Check if user has already seen the intro (session-based)
+    const hasSeenIntro = sessionStorage.getItem('hasSeenFundraisingIntro');
+
+    if (hasSeenIntro) {
+      // Skip intro if already seen this session
+      overlay?.remove();
+      mainContent?.classList.remove('main-content-hidden');
+      return;
+    }
+
+    let currentPhase = 0;
+    let canAdvance = true;
+
+    // Function to advance to next phrase
+    const advancePhase = () => {
+      if (!canAdvance) return;
+      canAdvance = false;
+
+      if (currentPhase === 0) {
+        // Skip to phrase 2
+        phrase1?.classList.remove('phrase-visible');
+        phrase1?.classList.add('phrase-exit');
+        setTimeout(() => {
+          showPhrase2();
+        }, 500);
+      } else if (currentPhase === 1) {
+        // Skip to phrase 3
+        phrase2?.classList.remove('phrase-visible');
+        phrase2?.classList.add('phrase-exit');
+        setTimeout(() => {
+          showPhrase3();
+        }, 500);
+      } else if (currentPhase === 2) {
+        // Exit overlay
+        exitOverlay();
+      }
+    };
+
+    const showPhrase1 = () => {
+      currentPhase = 0;
+      phrase1?.classList.add('phrase-visible');
+      canAdvance = true;
+    };
+
+    const showPhrase2 = () => {
+      currentPhase = 1;
+      phrase2?.classList.add('phrase-visible');
+      canAdvance = true;
+    };
+
+    const showPhrase3 = () => {
+      currentPhase = 2;
+      phrase3?.classList.add('phrase-visible');
+      canAdvance = true;
+    };
+
+    const exitOverlay = () => {
+      overlay?.classList.add('overlay-exit');
+      mainContent?.classList.remove('main-content-hidden');
+      mainContent?.classList.add('main-content-visible');
+
+      setTimeout(() => {
+        overlay?.remove();
+      }, 1200);
+
+      // Mark as seen for this session
+      sessionStorage.setItem('hasSeenFundraisingIntro', 'true');
+    };
+
+    // Add click handler to advance through phrases
+    overlay?.addEventListener('click', advancePhase);
+
+    // Animation sequence
+    const sequence = async () => {
+      // Wait a moment before starting
+      await delay(800);
+
+      // Phrase 1: Fade in, hold, fade out
+      showPhrase1();
+      await delay(3000);
+      if (currentPhase === 0) {
+        phrase1?.classList.remove('phrase-visible');
+        phrase1?.classList.add('phrase-exit');
+        await delay(2000);
+
+        // Phrase 2: Fade in, hold, fade out
+        showPhrase2();
+        await delay(3000);
+        if (currentPhase === 1) {
+          phrase2?.classList.remove('phrase-visible');
+          phrase2?.classList.add('phrase-exit');
+          await delay(2000);
+
+          // Phrase 3: Fade in, hold
+          showPhrase3();
+          await delay(3000);
+
+          if (currentPhase === 2) {
+            // Fade out overlay and show main content
+            exitOverlay();
+          }
+        }
+      }
+    };
+
+    function delay(ms: number) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    sequence();
+  });
+</script>
+
+<style>
+  /* Intro Overlay Styles */
+  .intro-overlay {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #202021 0%, #1a1a1b 100%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+    cursor: pointer;
+  }
+
+  .intro-overlay.overlay-exit {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .intro-content {
+    max-width: 800px;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .intro-phrase {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: 500;
+    color: white;
+    opacity: 0;
+    transition: opacity 0.8s ease-in-out;
+    margin: 0;
+    padding: 0 2rem;
+    max-width: 90vw;
+    line-height: 1.4;
+    background: linear-gradient(135deg, #3395ad 0%, #66cbea 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .intro-phrase.phrase-visible {
+    opacity: 1;
+  }
+
+  .intro-phrase.phrase-exit {
+    opacity: 0;
+  }
+
+  /* Skip hint */
+  .skip-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(189, 189, 189, 0.5);
+    font-size: 0.875rem;
+    animation: fadeInOut 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes fadeInOut {
+    0%, 100% {
+      opacity: 0.3;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* Main content hidden initially */
+  .main-content-hidden {
+    opacity: 0;
+  }
+
+  .main-content-visible {
+    animation: fadeInContent 1s ease-in forwards;
+  }
+
+  @keyframes fadeInContent {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Responsive text sizing */
+  @media (max-width: 768px) {
+    .intro-phrase {
+      font-size: 1.5rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .intro-phrase {
+      font-size: 1.25rem;
+    }
+  }
+
+  /* Full-page mesh background */
+  .mesh-background-full {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    background-color: rgba(51, 149, 173, 0.09);
+    background-image:
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    z-index: -20;
+    pointer-events: none;
+  }
+
+  /* Gradient fade overlay to fade mesh at top and bottom */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 40%, transparent 50%, transparent 50%, rgba(32, 32, 33, 0.7) 60%, rgba(32, 32, 33, 0.95) 80%, #202021 100%),
+      linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
