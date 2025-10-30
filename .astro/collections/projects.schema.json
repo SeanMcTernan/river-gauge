@@ -1,0 +1,87 @@
+{
+  "$ref": "#/definitions/projects",
+  "definitions": {
+    "projects": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "fundraising",
+            "in-progress",
+            "completed"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "shortDescription": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "coordinates": {
+          "type": "object",
+          "properties": {
+            "lat": {
+              "type": "number"
+            },
+            "lng": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "lat",
+            "lng"
+          ],
+          "additionalProperties": false
+        },
+        "funding": {
+          "type": "object",
+          "properties": {
+            "goal": {
+              "type": "number"
+            },
+            "currency": {
+              "type": "string",
+              "default": "USD"
+            }
+          },
+          "required": [
+            "goal"
+          ],
+          "additionalProperties": false
+        },
+        "installationDetails": {
+          "type": "string"
+        },
+        "order": {
+          "type": "number",
+          "default": 0
+        },
+        "$schema": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "slug",
+        "status",
+        "description",
+        "shortDescription",
+        "location",
+        "coordinates",
+        "funding"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

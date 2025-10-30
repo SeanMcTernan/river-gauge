@@ -3,11 +3,25 @@ export const prerender = false;
 
 import Layout from '../layouts/Layout.astro';
 import Button from "../components/Button.astro";
+import { getCollection } from 'astro:content';
+
+// Load all projects from content collection
+const allProjects = await getCollection('projects');
+// Sort by order field and filter for fundraising projects
+const activeProjects = allProjects
+  .filter(project => project.data.status === 'fundraising')
+  .sort((a, b) => a.data.order - b.data.order);
+
+// TODO: Fetch current funding from Stripe API for each project
+const projectsWithFunding = activeProjects.map(project => ({
+  ...project,
+  currentFunding: 0 // Placeholder - will be API call to Stripe
+}));
 ---
 
 <Layout
   pageTitle="Join Our Movement"
-  pageDescription="Contribute to our community-funded river  project. Social funding helps us maintain and expand real-time water level monitoring across North America."
+  pageDescription="Contribute to our community-funded river  project. Contributions helps us maintain and expand real-time water level monitoring across North America."
 >
   <!-- Fullscreen Intro Overlay -->
   <div id="intro-overlay" class="intro-overlay">
@@ -43,15 +57,15 @@ import Button from "../components/Button.astro";
           water safety and planning.
         </p>
         <p class="text-primaryWhite">
-          Optional social funding helps us cover the costs of maintaining existing monitoring stations,
+          Contributions helps us cover the costs of maintaining existing monitoring stations,
           installing new gauges, and keeping this data freely available to everyone who needs it.
           We rely on contributions from users like you to keep this service running.
         </p>
       </div>
 
-      <!-- How Social Funding Helps -->
+      <!-- How Contributions Helps -->
       <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
-        <h2 class="text-white font-semibold text-2xl mb-6">How Social Funding Helps</h2>
+        <h2 class="text-white font-semibold text-2xl mb-6">How Contributions Help</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="flex items-start space-x-4">
             <div class="flex-shrink-0 w-12 h-12 bg-primaryTeal/20 rounded-lg flex items-center justify-center">
@@ -105,9 +119,50 @@ import Button from "../components/Button.astro";
           contributions through social funding to help cover operating costs.
           Every contribution, no matter the size, helps us keep this community resource running.
         </p>
-        <div class="flex flex-col items-center space-y-4">
 
-        </div>
+        <!-- Active Projects -->
+        {projectsWithFunding.length > 0 && (
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {projectsWithFunding.map((project) => {
+              const fundingPercentage = Math.min((project.currentFunding / project.data.funding.goal) * 100, 100);
+              return (
+                <a href={`/contribute/${project.slug}`} class="block">
+                  <div class="bg-primaryGray/40 rounded-xl p-6 border border-primaryTeal/30 hover:border-primaryTeal/50 transition-all duration-300 hover:transform hover:scale-105">
+                    <div class="flex items-start justify-between mb-4">
+                      <h3 class="text-white font-semibold text-xl">{project.data.name} Gauge</h3>
+                      <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-medium">
+                        Fundraising
+                      </span>
+                    </div>
+                    <p class="text-primaryWhite text-sm mb-4">
+                      {project.data.shortDescription}
+                    </p>
+                    <div class="mb-4">
+                      <div class="flex justify-between text-sm mb-2">
+                        <span class="text-primaryWhite/70">Progress</span>
+                        <span class="text-primaryTeal font-semibold">
+                          ${project.currentFunding} / ${project.data.funding.goal}
+                        </span>
+                      </div>
+                      <div class="h-2 bg-secondaryGray rounded-full overflow-hidden">
+                        <div
+                          class="h-full bg-gradient-to-r from-primaryTeal to-primaryBlue rounded-full transition-all duration-500"
+                          style={`width: ${fundingPercentage}%`}
+                        ></div>
+                      </div>
+                    </div>
+                    <div class="flex items-center text-primaryTeal text-sm font-medium">
+                      Learn More & Contribute
+                      <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <!-- Back to Home -->
