@@ -4,6 +4,7 @@ export const prerender = false;
 import Layout from '../../layouts/Layout.astro';
 import Button from '../../components/Button.astro';
 import { getCollection } from 'astro:content';
+import { PAYMENT_OPTIONS } from '../../config/stripe';
 
 // Get the slug from the URL
 const { slug } = Astro.params;
@@ -98,10 +99,96 @@ const remainingFunding = fundingGoal - currentFunding;
             )}
           </p>
         </div>
+      </div>
 
-        <!-- Contribute Button -->
-        <div class="text-center mt-8">
-          <Button urlPath="/contribute" text="Contribute to This Project" />
+      <!-- Contribution Options -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryTeal/30 mb-8">
+        <h2 class="text-white font-semibold text-2xl mb-6 text-center">Choose Your Contribution</h2>
+        <p class="text-primaryWhite text-center mb-8">
+          Select a contribution option to help fund this gauge installation
+        </p>
+
+        <!-- Payment Options Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {PAYMENT_OPTIONS.map((option) => (
+            <div
+              class={`payment-option bg-primaryGray/60 backdrop-blur-sm rounded-xl p-6 border transition-all duration-300 hover:transform hover:scale-105 cursor-pointer relative ${
+                option.popular
+                  ? 'border-primaryTeal shadow-lg shadow-primaryTeal/20'
+                  : 'border-primaryWhite/20 hover:border-primaryTeal/50'
+              }`}
+              data-option-id={option.id}
+              data-price-id={option.priceId}
+              data-type={option.type}
+              data-amount={option.amount}
+            >
+              {option.popular && (
+                <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span class="bg-primaryTeal text-white px-3 py-1 rounded-full text-xs font-semibold">
+                    POPULAR
+                  </span>
+                </div>
+              )}
+
+              <div class="text-center mb-4">
+                <h3 class="text-white font-semibold text-xl mb-1">{option.name}</h3>
+                <p class="text-primaryWhite/70 text-xs">{option.description}</p>
+              </div>
+
+              {option.amount === 'custom' ? (
+                <div class="mb-4">
+                  <label class="block text-primaryWhite text-xs mb-2">
+                    {option.type === 'recurring' ? 'Annual Amount' : 'Amount'}
+                  </label>
+                  <div class="relative">
+                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-primaryWhite text-lg">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="Enter amount"
+                      class="custom-amount-input w-full bg-secondaryGray text-white text-lg pl-7 pr-3 py-2 rounded-lg border border-primaryWhite/20 focus:border-primaryTeal focus:outline-none"
+                      data-option={option.id}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div class="text-center mb-4">
+                  <div class="text-4xl font-bold text-primaryTeal mb-1">
+                    ${option.amount}
+                  </div>
+                  <div class="text-primaryWhite/70 text-xs">
+                    {option.type === 'recurring' ? 'per year' : 'one-time'}
+                  </div>
+                </div>
+              )}
+
+              <button
+                class="select-payment-btn w-full bg-primaryTeal hover:bg-primaryBlue text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 text-sm"
+                data-option={option.id}
+              >
+                {option.type === 'recurring' ? 'Subscribe' : 'Contribute'}
+              </button>
+
+              {option.type === 'recurring' && (
+                <p class="text-xs text-primaryWhite/50 text-center mt-2">
+                  Cancel anytime
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <!-- Secure Payment Info -->
+        <div class="mt-8 text-center">
+          <div class="flex justify-center items-center space-x-2 text-primaryWhite/70 text-xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Secure payments powered by Stripe</span>
+          </div>
         </div>
       </div>
 
@@ -210,6 +297,64 @@ const remainingFunding = fundingGoal - currentFunding;
 <!-- Leaflet JS -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
+<script>
+  // Handle payment selection
+  document.addEventListener('DOMContentLoaded', () => {
+    const selectButtons = document.querySelectorAll('.select-payment-btn');
+
+    selectButtons.forEach(button => {
+      button.addEventListener('click', async (e) => {
+        const target = e.target as HTMLButtonElement;
+        const optionId = target.dataset.option;
+        const paymentOption = document.querySelector(`[data-option-id="${optionId}"]`);
+
+        if (!paymentOption) return;
+
+        const priceId = paymentOption.getAttribute('data-price-id');
+        const type = paymentOption.getAttribute('data-type');
+        const amount = paymentOption.getAttribute('data-amount');
+
+        // Determine the final amount
+        let finalAmount: number | null = null;
+        if (amount === 'custom') {
+          // Get custom amount from input
+          const input = paymentOption.querySelector('.custom-amount-input') as HTMLInputElement;
+          finalAmount = parseInt(input.value);
+
+          if (!finalAmount || finalAmount < 1) {
+            alert('Please enter a valid amount');
+            return;
+          }
+        } else {
+          // Use fixed amount from data attribute
+          finalAmount = parseInt(amount);
+        }
+
+        // Disable button and show loading
+        target.disabled = true;
+        target.textContent = 'Loading...';
+
+        try {
+          // Build checkout URL with query parameters
+          const checkoutUrl = new URL('/checkout', window.location.origin);
+          checkoutUrl.searchParams.set('priceId', priceId);
+          checkoutUrl.searchParams.set('type', type);
+          checkoutUrl.searchParams.set('project', window.location.pathname.split('/').pop());
+          checkoutUrl.searchParams.set('amount', finalAmount.toString());
+
+          // Navigate to embedded checkout page
+          window.location.href = checkoutUrl.toString();
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Failed to start checkout. Please try again.');
+          target.disabled = false;
+          target.textContent = type === 'recurring' ? 'Subscribe' : 'Contribute';
+        }
+      });
+    });
+  });
+</script>
+
 <script define:vars={{ coordinates, gaugeName }}>
   // Initialize map when Leaflet is loaded
   function initMap() {
@@ -313,5 +458,16 @@ const remainingFunding = fundingGoal - currentFunding;
       linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
     pointer-events: none;
     z-index: 0;
+  }
+
+  /* Custom input number styling */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 </style>

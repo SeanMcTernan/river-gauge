@@ -1,0 +1,456 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// Get payment details from URL query params
+const searchParams = Astro.url.searchParams;
+const priceId = searchParams.get('priceId');
+const amount = searchParams.get('amount');
+const type = searchParams.get('type');
+const projectSlug = searchParams.get('project');
+
+if (!amount || !type) {
+  return Astro.redirect('/contribute');
+}
+
+// Load project information if available
+let project = null;
+let projectName = 'River Gauge Monitoring';
+if (projectSlug) {
+  const allProjects = await getCollection('projects');
+  project = allProjects.find(p => p.slug === projectSlug);
+  if (project) {
+    projectName = project.data.name;
+  }
+}
+
+// Get Stripe publishable key from environment
+const stripePublishableKey = import.meta.env.STRIPE_PUBLISHABLE_KEY;
+
+if (!stripePublishableKey) {
+  throw new Error('Stripe publishable key not configured');
+}
+---
+
+<Layout
+  pageTitle="Secure Checkout"
+  pageDescription="Complete your contribution securely"
+>
+  <!-- Static mesh background layer -->
+  <div class="mesh-background-full"></div>
+
+  <main class="flex-grow relative">
+    <div class="container mx-auto px-4 py-12 max-w-4xl">
+      <!-- Back Navigation -->
+      <div class="mb-8">
+        <a
+          href="/contribute"
+          class="inline-flex items-center text-primaryTeal hover:text-primaryBlue transition-colors"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back to Contribute
+        </a>
+      </div>
+
+      <!-- Checkout Header -->
+      <div class="text-center mb-8">
+        {project && (
+          <div class="mb-4">
+            <span class="inline-block px-4 py-2 bg-blue-500/20 text-blue-300 rounded-full text-sm font-medium">
+              {projectName} Gauge Project
+            </span>
+          </div>
+        )}
+        <h1 class="text-4xl font-bold text-primaryWhite mb-4">
+          Secure Checkout
+        </h1>
+        <p class="text-primaryWhite/70">
+          {project
+            ? `Support real-time water level monitoring for ${projectName}`
+            : 'Support our river monitoring network'
+          }
+        </p>
+      </div>
+
+      <!-- Checkout Container -->
+      <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryTeal/30 mb-8">
+        <!-- Error Messages -->
+        <div id="error-message" class="hidden mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+          <div class="flex items-start">
+            <svg class="w-5 h-5 text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-red-200 text-sm" id="error-text"></p>
+          </div>
+        </div>
+
+        <!-- Checkout Form -->
+        <form id="payment-form">
+          <!-- Email -->
+          <div class="mb-6">
+            <label for="email" class="block text-primaryWhite text-sm font-medium mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              placeholder="you@example.com"
+              class="w-full bg-secondaryGray text-white px-4 py-3 rounded-lg border border-primaryWhite/20 focus:border-primaryTeal focus:outline-none transition-colors"
+            />
+            <p class="text-primaryWhite/60 text-xs mt-2">We'll send your receipt to this email</p>
+          </div>
+
+          <!-- Name -->
+          <div class="mb-6">
+            <label for="name" class="block text-primaryWhite text-sm font-medium mb-2">
+              Full Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              placeholder="John Doe"
+              class="w-full bg-secondaryGray text-white px-4 py-3 rounded-lg border border-primaryWhite/20 focus:border-primaryTeal focus:outline-none transition-colors"
+            />
+          </div>
+
+          <!-- Card Element -->
+          <div class="mb-6">
+            <label class="block text-primaryWhite text-sm font-medium mb-2">
+              Card Information
+            </label>
+            <div id="card-element" class="bg-secondaryGray px-4 py-3 rounded-lg border border-primaryWhite/20 focus-within:border-primaryTeal transition-colors"></div>
+          </div>
+
+          <!-- Postal Code -->
+          <div class="mb-6">
+            <label for="postal-code" class="block text-primaryWhite text-sm font-medium mb-2">
+              Postal Code / ZIP Code
+            </label>
+            <input
+              type="text"
+              id="postal-code"
+              name="postal-code"
+              required
+              placeholder="A1A 1A1 or 12345"
+              class="w-full bg-secondaryGray text-white px-4 py-3 rounded-lg border border-primaryWhite/20 focus:border-primaryTeal focus:outline-none transition-colors"
+            />
+            <p class="text-primaryWhite/60 text-xs mt-2">For fraud verification</p>
+          </div>
+
+          <!-- Amount Summary -->
+          <div class="mb-6 p-4 bg-primaryGray/60 rounded-lg border border-primaryWhite/10">
+            <div class="flex justify-between items-center">
+              <span class="text-primaryWhite font-medium">Total Amount</span>
+              <span class="text-primaryTeal text-2xl font-bold" id="amount-display">$0</span>
+            </div>
+            <p class="text-primaryWhite/60 text-xs mt-2" id="payment-type-display"></p>
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="submit-button"
+            class="w-full bg-primaryTeal hover:bg-primaryBlue text-white font-semibold py-4 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span id="button-text">Complete Contribution</span>
+            <span id="spinner" class="hidden">
+              <svg class="animate-spin h-5 w-5 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Project Impact Info -->
+      {project && (
+        <div class="bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-6 border border-primaryWhite/20 mb-8">
+          <h3 class="text-white font-semibold text-lg mb-4 text-center">Your Contribution Will Help:</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p class="text-primaryWhite/80 text-sm">Install & maintain sensors</p>
+            </div>
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p class="text-primaryWhite/80 text-sm">Provide real-time data</p>
+            </div>
+            <div class="flex flex-col items-center">
+              <div class="w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center mb-2">
+                <svg class="w-5 h-5 text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <p class="text-primaryWhite/80 text-sm">Serve the community</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <!-- Security Notice -->
+      <div class="text-center">
+        <div class="flex justify-center items-center space-x-2 text-primaryWhite/70 text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span>Your payment information is encrypted and secure</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<!-- Load Stripe.js -->
+<script is:inline src="https://js.stripe.com/v3/"></script>
+
+<script define:vars={{ stripePublishableKey, amount, type }}>
+  // Initialize Stripe Elements
+  const stripe = Stripe(stripePublishableKey);
+  const elements = stripe.elements();
+
+  // Get payment parameters from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const project = urlParams.get('project');
+  const paymentAmount = amount ? parseInt(amount) : 0;
+
+  // Create card element with custom styling
+  const cardElement = elements.create('card', {
+    style: {
+      base: {
+        color: '#e8eaed',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSize: '16px',
+        '::placeholder': {
+          color: '#bdbdbd',
+        },
+      },
+      invalid: {
+        color: '#f87171',
+        iconColor: '#f87171',
+      },
+    },
+    hidePostalCode: true, // Disable postal code to avoid region-specific validation
+  });
+
+  // Mount card element
+  cardElement.mount('#card-element');
+
+  // Update amount display
+  document.getElementById('amount-display').textContent = `$${paymentAmount}`;
+  document.getElementById('payment-type-display').textContent =
+    type === 'recurring' ? 'Billed annually' : 'One-time contribution';
+
+  // Handle form submission
+  const form = document.getElementById('payment-form');
+  const submitButton = document.getElementById('submit-button');
+  const buttonText = document.getElementById('button-text');
+  const spinner = document.getElementById('spinner');
+  const errorMessageDiv = document.getElementById('error-message');
+  const errorText = document.getElementById('error-text');
+
+  // Show error message
+  function showError(message) {
+    errorText.textContent = message;
+    errorMessageDiv.classList.remove('hidden');
+    // Scroll to error
+    errorMessageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  // Hide error message
+  function hideError() {
+    errorMessageDiv.classList.add('hidden');
+  }
+
+  // Set loading state
+  function setLoading(isLoading) {
+    submitButton.disabled = isLoading;
+    if (isLoading) {
+      buttonText.classList.add('hidden');
+      spinner.classList.remove('hidden');
+    } else {
+      buttonText.classList.remove('hidden');
+      spinner.classList.add('hidden');
+    }
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hideError();
+    setLoading(true);
+
+    const email = document.getElementById('email').value;
+    const name = document.getElementById('name').value;
+    const postalCode = document.getElementById('postal-code').value;
+
+    try {
+      // Create payment intent
+      const response = await fetch('/.netlify/functions/createPaymentIntent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: paymentAmount,
+          type,
+          project,
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process payment');
+      }
+
+      const { clientSecret, type: intentType } = await response.json();
+
+      // Confirm the payment with Stripe
+      let result;
+      if (intentType === 'setup') {
+        result = await stripe.confirmCardSetup(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name,
+              email,
+              address: {
+                postal_code: postalCode,
+              },
+            },
+          },
+        });
+      } else {
+        result = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name,
+              email,
+              address: {
+                postal_code: postalCode,
+              },
+            },
+          },
+          receipt_email: email,
+        });
+      }
+
+      if (result.error) {
+        // Show error to customer
+        showError(result.error.message);
+        setLoading(false);
+      } else {
+        // Payment succeeded
+        const intentId = intentType === 'setup'
+          ? result.setupIntent.id
+          : result.paymentIntent.id;
+
+        // For recurring payments, create subscription
+        if (intentType === 'setup') {
+          try {
+            const subscriptionResponse = await fetch('/.netlify/functions/createSubscription', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                setupIntentId: intentId,
+                amount: paymentAmount,
+                project,
+                email,
+              }),
+            });
+
+            if (!subscriptionResponse.ok) {
+              const errorData = await subscriptionResponse.json();
+              throw new Error(errorData.error || 'Failed to create subscription');
+            }
+
+            const subscriptionData = await subscriptionResponse.json();
+            console.log('Subscription created:', subscriptionData.subscriptionId);
+          } catch (error) {
+            console.error('Subscription creation error:', error);
+            showError('Payment method saved, but subscription setup failed. Please contact support.');
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Redirect to success page
+        window.location.href = `/contribute/success?intent_id=${intentId}&type=${intentType}&project=${project || ''}`;
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      showError(error.message || 'An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
+  });
+
+  // Handle real-time validation errors from card element
+  cardElement.on('change', (event) => {
+    if (event.error) {
+      showError(event.error.message);
+    } else {
+      hideError();
+    }
+  });
+</script>
+
+<style>
+  /* Full-page mesh background */
+  .mesh-background-full {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    background-color: rgba(51, 149, 173, 0.09);
+    background-image:
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    z-index: -20;
+    pointer-events: none;
+  }
+
+  /* Gradient fade overlay */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 40%, transparent 50%, transparent 50%, rgba(32, 32, 33, 0.7) 60%, rgba(32, 32, 33, 0.95) 80%, #202021 100%),
+      linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Custom spinner animation */
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
+</style>

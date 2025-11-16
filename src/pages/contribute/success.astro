@@ -1,0 +1,248 @@
+---
+export const prerender = false;
+
+import Layout from '../../layouts/Layout.astro';
+import Button from '../../components/Button.astro';
+import { getCollection } from 'astro:content';
+
+// We'll load project info client-side based on session metadata
+---
+
+<Layout
+  pageTitle="Thank You!"
+  pageDescription="Thank you for your contribution to our river monitoring network."
+>
+  <!-- Static mesh background layer -->
+  <div class="mesh-background-full"></div>
+
+  <main class="flex-grow relative">
+    <div class="container mx-auto px-4 py-12 max-w-3xl">
+      <!-- Loading State -->
+      <div id="loading" class="text-center mb-12">
+        <div class="mb-8">
+          <div class="inline-flex items-center justify-center w-24 h-24">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primaryTeal"></div>
+          </div>
+        </div>
+        <h1 class="text-white font-medium leading-tight text-4xl lg:text-5xl mb-4">
+          Verifying Payment...
+        </h1>
+        <p class="text-primaryWhite text-lg mb-8">
+          Please wait while we confirm your contribution.
+        </p>
+      </div>
+
+      <!-- Success Message -->
+      <div id="success" class="hidden text-center mb-12">
+        <!-- Success Icon -->
+        <div class="mb-8">
+          <div class="inline-flex items-center justify-center w-24 h-24 bg-green-500/20 rounded-full">
+            <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+        </div>
+
+        <h1 class="text-white font-medium leading-tight text-4xl lg:text-5xl mb-4">
+          Thank You for Your Support!
+        </h1>
+        <p class="text-primaryWhite text-lg mb-4" id="success-message">
+          Your contribution has been received successfully.
+        </p>
+        <p class="text-primaryWhite/70 text-sm" id="customer-email"></p>
+      </div>
+
+      <!-- Details Card -->
+      <div id="details" class="hidden bg-primaryGray/40 backdrop-blur-sm rounded-2xl p-8 border border-primaryWhite/20 mb-8">
+        <h2 class="text-white font-semibold text-2xl mb-6 text-center">What Happens Next</h2>
+
+        <div class="space-y-6">
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center">
+              <span class="text-primaryTeal font-semibold">1</span>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">Receipt Sent</h3>
+              <p class="text-primaryWhite text-sm">
+                You'll receive a confirmation email with your receipt and payment details within a few minutes.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center">
+              <span class="text-primaryTeal font-semibold">2</span>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">Making a Real Impact</h3>
+              <p class="text-primaryWhite text-sm" id="impact-message">
+                Your contribution goes directly toward installing and maintaining river gauge equipment,
+                providing free real-time water level data to communities across North America.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-primaryTeal/20 rounded-full flex items-center justify-center">
+              <span class="text-primaryTeal font-semibold">3</span>
+            </div>
+            <div>
+              <h3 class="text-white font-semibold mb-2">Track Progress</h3>
+              <p class="text-primaryWhite text-sm">
+                Visit the project page anytime to see the installation progress and when the gauge goes live.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message Card -->
+      <div id="message" class="hidden bg-gradient-to-r from-primaryTeal/20 to-primaryBlue/20 backdrop-blur-sm rounded-2xl p-8 border border-primaryTeal/30 text-center mb-8">
+        <div class="mb-4">
+          <svg class="w-12 h-12 mx-auto text-primaryTeal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+          </svg>
+        </div>
+        <p class="text-primaryWhite text-lg mb-2">
+          You're helping keep water data free and accessible
+        </p>
+        <p class="text-primaryWhite/70">
+          Community support like yours makes real-time river monitoring possible for kayakers, fishers, emergency services, and everyone who depends on safe water access.
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div id="actions" class="hidden flex flex-col sm:flex-row gap-4 justify-center">
+        <a id="project-link" href="/contribute" class="hidden inline-block px-6 py-3 bg-primaryTeal hover:bg-primaryBlue text-white font-semibold rounded-lg transition-colors duration-200 text-center">
+          View Project Progress
+        </a>
+        <Button urlPath="/" text="Return Home" />
+        <Button urlPath="/levels" text="View Water Levels" />
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  // Check payment status when page loads
+  async function checkPaymentStatus() {
+    try {
+      // Get intent ID from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const intentId = urlParams.get('intent_id');
+      const intentType = urlParams.get('type');
+      const sessionId = urlParams.get('session_id'); // Legacy support
+      const projectFromUrl = urlParams.get('project');
+
+      // Support both new (intent) and old (session) flows
+      let response, data;
+
+      if (intentId && intentType) {
+        // New flow with PaymentIntent/SetupIntent
+        response = await fetch(`/.netlify/functions/paymentStatus?intent_id=${intentId}&type=${intentType}`);
+        data = await response.json();
+
+        // Use project from URL if not in metadata
+        if (!data.project && projectFromUrl) {
+          data.project = projectFromUrl;
+        }
+      } else if (sessionId) {
+        // Legacy flow with Checkout Session
+        response = await fetch(`/.netlify/functions/sessionStatus?session_id=${sessionId}`);
+        data = await response.json();
+      } else {
+        // No payment identifier, redirect to contribute page
+        window.location.href = '/contribute';
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify payment status');
+      }
+
+      // Handle different statuses
+      if (data.status === 'succeeded' || data.status === 'complete') {
+        // Payment successful - show success message
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('success').classList.remove('hidden');
+        document.getElementById('details').classList.remove('hidden');
+        document.getElementById('message').classList.remove('hidden');
+        document.getElementById('actions').classList.remove('hidden');
+
+        // Update messaging based on project
+        if (data.project) {
+          const projectName = data.project.split('-').map(word =>
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' ');
+
+          const successMessageEl = document.getElementById('success-message');
+          successMessageEl.textContent = `Your contribution to the ${projectName} Gauge project has been received!`;
+
+          const impactMessageEl = document.getElementById('impact-message');
+          impactMessageEl.textContent = `Your contribution supports the installation and maintenance of the ${projectName} Gauge, bringing free real-time water level monitoring to this community.`;
+
+          // Show and update project link
+          const projectLink = document.getElementById('project-link');
+          projectLink.classList.remove('hidden');
+          projectLink.href = `/contribute/${data.project}`;
+        }
+
+        // Display customer email if available
+        if (data.customer_email) {
+          const emailEl = document.getElementById('customer-email');
+          emailEl.textContent = `A confirmation email has been sent to ${data.customer_email}`;
+        }
+      } else if (data.status === 'open') {
+        // Payment not completed - redirect back to contribute page
+        alert('Payment was not completed. Please try again.');
+        window.location.href = '/contribute';
+      } else {
+        // Unknown status
+        throw new Error('Payment status could not be verified');
+      }
+
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      alert('Failed to verify payment status. Please contact support if your payment was processed.');
+      window.location.href = '/contribute';
+    }
+  }
+
+  // Run on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkPaymentStatus);
+  } else {
+    checkPaymentStatus();
+  }
+</script>
+
+<style>
+  /* Full-page mesh background */
+  .mesh-background-full {
+    position: fixed;
+    inset: 0;
+    min-height: 100vh;
+    background-color: rgba(51, 149, 173, 0.09);
+    background-image:
+      linear-gradient(rgba(51, 149, 173, 0.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 149, 173, 0.15) 1px, transparent 1px);
+    background-size: 20px 20px;
+    z-index: -20;
+    pointer-events: none;
+  }
+
+  /* Gradient fade overlay to fade mesh at top and bottom */
+  .mesh-background-full::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      linear-gradient(to bottom, #202021 0%, rgba(32, 32, 33, 0.95) 20%, rgba(32, 32, 33, 0.7) 40%, transparent 50%, transparent 50%, rgba(32, 32, 33, 0.7) 60%, rgba(32, 32, 33, 0.95) 80%, #202021 100%),
+      linear-gradient(to right, #202021 0%, rgba(32, 32, 33, 0.8) 1%, transparent 4%, transparent 96%, rgba(32, 32, 33, 0.8) 99%, #202021 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>
