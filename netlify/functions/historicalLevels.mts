@@ -50,16 +50,10 @@ export default async (req: Request, context: Context) => {
             if (yearData) {
                 const parsedData = JSON.parse(yearData);
                 const yearDataObj = parsedData.data[yearStr];
-                
-                // Sort months in descending order (12, 11, 10, 09, 08, etc.)
-                const sortedYearData: Record<string, any> = {};
-                const monthKeys = Object.keys(yearDataObj).sort((a, b) => parseInt(b) - parseInt(a));
-                
-                for (const month of monthKeys) {
-                    sortedYearData[month] = yearDataObj[month];
-                }
-                
-                allHistoricalData.data[yearStr] = sortedYearData;
+
+                // Don't try to sort - just use the data as-is
+                // The custom JSON.stringify replacer will handle the sorting
+                allHistoricalData.data[yearStr] = yearDataObj;
                 allHistoricalData.metadata.availableYears.push(yearStr);
                 allHistoricalData.metadata.totalYears++;
             }
@@ -78,7 +72,37 @@ export default async (req: Request, context: Context) => {
         });
     }
 
-    return new Response(JSON.stringify(allHistoricalData), {
+    // Manually build JSON string to control month order
+    // JavaScript automatically reorders numeric keys, so we build the JSON string directly
+    let jsonStr = '{\n  "metadata": ' + JSON.stringify(allHistoricalData.metadata, null, 2).replace(/\n/g, '\n  ') + ',\n  "data": {\n';
+
+    const years = Object.keys(allHistoricalData.data).sort();
+    for (let i = 0; i < years.length; i++) {
+        const year = years[i];
+        const yearData = allHistoricalData.data[year];
+
+        jsonStr += `    "${year}": {\n`;
+
+        // Sort months chronologically
+        const monthEntries = Object.entries(yearData);
+        monthEntries.sort((a, b) => parseInt(a[0], 10) - parseInt(b[0], 10));
+
+        for (let j = 0; j < monthEntries.length; j++) {
+            const [month, monthData] = monthEntries[j];
+            const monthDataStr = JSON.stringify(monthData, null, 2).replace(/\n/g, '\n      ');
+            jsonStr += `      "${month}": ${monthDataStr}`;
+            if (j < monthEntries.length - 1) jsonStr += ',';
+            jsonStr += '\n';
+        }
+
+        jsonStr += '    }';
+        if (i < years.length - 1) jsonStr += ',';
+        jsonStr += '\n';
+    }
+
+    jsonStr += '  }\n}';
+
+    return new Response(jsonStr, {
         headers: { "Content-Type": "application/json" }
     });
 };

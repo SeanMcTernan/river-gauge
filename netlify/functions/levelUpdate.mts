@@ -55,51 +55,96 @@ export default async (req: Request, context: Context) => {
         if (river !== 'wigwam' && river !== 'toby') {
             return new Response("Method Not Allowed", { status: 405 });
         }
-        // Read the zero environment variable and convert to number adding if statement for future rivers
-        let zero;
-        if (river === 'wigwam') {
-            zero = Number(process.env.WIGWAM_ZERO);
-        }
-        //Extract the form data from the payload
-        const formData = qs.parse(await req.text());
-        console.log(formData);
-        // Pull Lat/Long to determine local time of the transmit time 
-        const transmitTime = formData.transmit_time;
-        const latitude = parseFloat(formData.iridium_latitude);
-        const longitude = parseFloat(formData.iridium_longitude);
-        const timezone = tzlookup(latitude, longitude);
-        // Round time to nearest hour and create a list of times
-        const roundedTime = extractAndRoundTime(transmitTime);
-        const times = createTimesArray(roundedTime, 12, timezone);
-        // Parse the hex endoded data into an array of numbers
-        const hexData = formData.data;
-        const decodedData: number[] = JSON.parse(Buffer.from(hexData, 'hex').toString());
+
         //Get the associated levels Netlify Blob Store
         const levels = getStore(river);
+        let blobData;
 
-        const levelData = times.reduce((acc, time, index) => {
-            const level = zero - decodedData[index];
-            acc[time] = `${level}cm`;
-            return acc;
-        }, {} as Record<string, string>);
+        if (river === 'wigwam') {
+            // Read the zero environment variable and convert to number
+            const zero = Number(process.env.WIGWAM_ZERO);
+            //Extract the form data from the payload
+            const formData = qs.parse(await req.text());
+            console.log(formData);
+            // Pull Lat/Long to determine local time of the transmit time
+            const transmitTime = formData.transmit_time;
+            const latitude = parseFloat(formData.iridium_latitude);
+            const longitude = parseFloat(formData.iridium_longitude);
+            const timezone = tzlookup(latitude, longitude);
+            // Round time to nearest hour and create a list of times
+            const roundedTime = extractAndRoundTime(transmitTime);
+            const times = createTimesArray(roundedTime, 12, timezone);
+            // Parse the hex endoded data into an array of numbers
+            const hexData = formData.data;
+            const decodedData: number[] = JSON.parse(Buffer.from(hexData, 'hex').toString());
 
-        const localTransmitTime = roundedTime.clone().tz(timezone);
+            const levelData = times.reduce((acc, time, index) => {
+                const level = zero - decodedData[index];
+                acc[time] = `${level}cm`;
+                return acc;
+            }, {} as Record<string, string>);
 
-        const blobData = {
-            levels: levelData,
-            metadata: {
-                transmitTime: {
-                    utc: transmitTime,
-                    local: localTransmitTime.format('YYYY-MM-DD HH:mm:ss'),
-                    timezone: timezone
-                },
-                location: {
-                    latitude: latitude,
-                    longitude: longitude
-                },
-                lastUpdated: moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC'
-            }
-        };
+            const localTransmitTime = roundedTime.clone().tz(timezone);
+
+            blobData = {
+                levels: levelData,
+                metadata: {
+                    transmitTime: {
+                        utc: transmitTime,
+                        local: localTransmitTime.format('YYYY-MM-DD HH:mm:ss'),
+                        timezone: timezone
+                    },
+                    location: {
+                        latitude: latitude,
+                        longitude: longitude
+                    },
+                    lastUpdated: moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC'
+                }
+            };
+        } else {
+            // Toby river processing
+            const zero = Number(process.env.TOBY_ZERO);
+            // Hard-coded location for Toby river
+            const latitude = 50.464504;
+            const longitude = -116.230713;
+            const timezone = 'America/Denver';
+
+            //Extract the form data from the payload
+            const formData = qs.parse(await req.text());
+            console.log(formData);
+
+            // Extract transmit time and single level value
+            const transmitTime = formData.transmit_time;
+            const levelValue = parseFloat(formData.level);
+
+            // Round time to nearest hour
+            const roundedTime = extractAndRoundTime(transmitTime);
+            const localTransmitTime = roundedTime.clone().tz(timezone);
+            const currentTime = localTransmitTime.format('HH:mm');
+
+            // Calculate single level value
+            const calculatedLevel = zero - levelValue;
+            const levelData = {
+                [currentTime]: `${calculatedLevel}cm`
+            };
+
+            blobData = {
+                levels: levelData,
+                metadata: {
+                    transmitTime: {
+                        utc: transmitTime,
+                        local: localTransmitTime.format('YYYY-MM-DD HH:mm:ss'),
+                        timezone: timezone,
+                        temperature: formData.temp || null
+                    },
+                    location: {
+                        latitude: latitude,
+                        longitude: longitude
+                    },
+                    lastUpdated: moment().utc().format('YYYY-MM-DD HH:mm:ss') + ' UTC'
+                }
+            };
+        }
 
         await levels.setJSON("latest", blobData);
 

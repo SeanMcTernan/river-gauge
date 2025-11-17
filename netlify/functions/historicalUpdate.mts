@@ -71,8 +71,12 @@ async function updateHistoricalData(river: string) {
 
     // Add current data if it exists in latest readings
     if (latest.levels && Object.keys(latest.levels).length > 0) {
+        // Check if temperature data is available (for Toby river)
+        const hasTemperature = latest.metadata?.transmitTime?.temperature !== undefined &&
+                               latest.metadata?.transmitTime?.temperature !== null;
+
         // Group readings by their actual date (not transmit date)
-        const readingsByDate: Record<string, Record<string, number>> = {};
+        const readingsByDate: Record<string, Record<string, any>> = {};
 
         // The times array from levelUpdate goes backwards from transmit time
         // Keys are just "HH:mm" format - MUST preserve insertion order, not sort
@@ -103,7 +107,17 @@ async function updateHistoricalData(river: string) {
                 if (!readingsByDate[dateKey]) {
                     readingsByDate[dateKey] = {};
                 }
-                readingsByDate[dateKey][hourKey] = numericValue;
+
+                // Store level data with optional temperature
+                if (hasTemperature) {
+                    readingsByDate[dateKey][hourKey] = {
+                        level: numericValue,
+                        temperature: parseFloat(latest.metadata.transmitTime.temperature)
+                    };
+                } else {
+                    // Wigwam river - just store the numeric value for backward compatibility
+                    readingsByDate[dateKey][hourKey] = numericValue;
+                }
             } else {
                 console.warn(`Invalid reading for time ${timeKey}: ${level}`);
             }
@@ -158,8 +172,9 @@ async function updateHistoricalData(river: string) {
             .sort()
             .forEach(y => {
                 const sortedMonths: Record<string, any> = {};
+                // Sort months numerically (01, 02, 03... 10, 11, 12)
                 Object.keys(historicalData.data[y])
-                    .sort((a, b) => parseInt(a) - parseInt(b))
+                    .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
                     .forEach(m => {
                         const sortedDates: Record<string, any> = {};
                         Object.keys(historicalData.data[y][m])
