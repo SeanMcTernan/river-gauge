@@ -1,25 +1,26 @@
 ---
-import HeaderLink from "./Links.astro";
-import { Image } from "astro:assets";
-import logo from "../assets/images/logo.svg";
 ---
 
-<header class="sticky top-0 bg-primaryGray shadow-md py-4 mb-8 z-50">
-  <div class="container mx-auto flex justify-between items-center">
-    <a href="/" class="my-2 ml-2 hidden sm:block">
-      <Image src={logo} alt="Site Logo" />
-    </a>
-    <nav
-      class="flex justify-end items-center w-full text-primaryWhite uppercase"
-    >
-      <div
-        class="internal-links flex space-x-4 sm:space-x-8 lg:space-x-16 text-xs sm:text-sm md:text-base mr-2"
-      >
-        <HeaderLink href="/" class="hover:text-primaryTeal">Home</HeaderLink>
-        <HeaderLink href="/levels" class="hover:text-primaryTeal"
-          >Current Levels</HeaderLink
-        >
+<header class="sticky top-0 z-50 border-b border-border bg-surface/90 backdrop-blur-md">
+  <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-3 group">
+      <div class="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center group-hover:border-accent/50 group-hover:bg-accent/15 transition-all">
+        <svg viewBox="0 0 24 24" class="w-4 h-4 text-accent" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 12h4l3-9 4 18 3-9h4" />
+        </svg>
       </div>
+      <div class="hidden sm:block">
+        <span class="font-display text-lg font-semibold text-text tracking-tight">Digital Flow Gauge</span>
+      </div>
+    </a>
+
+    <nav class="flex items-center gap-8">
+      <a href="/" class="font-body text-sm font-medium text-textMuted hover:text-accent transition-colors">
+        Home
+      </a>
+      <a href="/levels" class="font-body text-sm font-medium text-textMuted hover:text-accent transition-colors">
+        Current Levels
+      </a>
     </nav>
   </div>
 </header>

@@ -1,20 +1,32 @@
 ---
 const today = new Date();
-import FooterLink from "./Links.astro";
 ---
 
-<footer class="bg-primaryGray text-secondaryGray py-4 w-full">
-  <nav class="flex justify-center items-center w-full mb-4">
-    <div class="internal-links hidden sm:flex space-x-8 lg:space-x-16">
-      <FooterLink href="/levels" class="text-primaryWhite hover:text-primaryTeal"
-        >Current Levels</FooterLink
-      >
-      <FooterLink href="/about" class="text-primaryWhite hover:text-primaryTeal"
-        >About</FooterLink
-      >
+<footer class="border-t border-border bg-surfaceRaised/50">
+  <div class="max-w-6xl mx-auto px-6 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-6 h-6 rounded bg-accent/10 border border-accent/20 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" class="w-3 h-3 text-accent/60" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M3 12h4l3-9 4 18 3-9h4" />
+          </svg>
+        </div>
+        <span class="font-display text-sm text-textMuted">Digital Flow Gauge</span>
+      </div>
+
+      <nav class="flex items-center gap-6">
+        <a href="/levels" class="font-body text-xs font-medium text-textDim hover:text-accent transition-colors">
+          Current Levels
+        </a>
+        <span class="text-border">|</span>
+        <a href="/about" class="font-body text-xs font-medium text-textDim hover:text-accent transition-colors">
+          About
+        </a>
+      </nav>
+
+      <p class="font-body text-xs text-textDim">
+        &copy; {today.getFullYear()} Digital Flow Gauge
+      </p>
     </div>
-  </nav>
-  <div class="text-center mb-4 text-primaryWhite">
-    &copy; {today.getFullYear()} Digital Flow Gauge
   </div>
 </footer>

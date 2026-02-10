@@ -3,7 +3,6 @@ export const prerender = false;
 
 const { river } = Astro.params;
 
-// Fetch historical data
 let chartData: any = null;
 let error: string | null = null;
 
@@ -14,11 +13,11 @@ try {
   const historicalResponse = await fetch(`${apiUrl}/historicallevels?${river}`);
   if (historicalResponse.ok) {
     const historicalData = await historicalResponse.json();
-    
+
     if (historicalData?.data) {
       const dates: string[] = [];
       const levels: number[] = [];
-      
+
       for (const year in historicalData.data) {
         for (const month in historicalData.data[year]) {
           for (const date in historicalData.data[year][month]) {
@@ -31,21 +30,21 @@ try {
           }
         }
       }
-      
+
       if (dates.length > 0) {
         const combined = dates.map((date, i) => ({ date: new Date(date), level: levels[i] }))
           .sort((a, b) => a.date.getTime() - b.date.getTime());
-        
+
         chartData = {
           x: combined.map(item => item.date.toISOString()),
           y: combined.map(item => item.level),
           type: 'scatter',
           mode: 'lines+markers',
           name: 'Water Level',
-          line: { color: '#3395ad', width: 2 },
-          marker: { color: '#66cbea', size: 4 },
+          line: { color: '#06B6D4', width: 2, shape: 'spline' },
+          marker: { color: '#22D3EE', size: 4 },
           fill: 'tozeroy',
-          fillcolor: 'rgba(51, 149, 173, 0.25)'
+          fillcolor: 'rgba(6, 182, 212, 0.08)'
         };
       }
     }
@@ -69,14 +68,17 @@ const riverName = river ? (riverNames[river] || river) : 'Unknown River';
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{riverName} - Water Level Chart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
   <script is:inline src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background-color: #202021;
-      color: #e8eaed;
+      font-family: 'Inter', system-ui, sans-serif;
+      background-color: #0A0E17;
+      color: #E2E8F0;
     }
     #chart-container {
       width: 100%;
@@ -93,8 +95,9 @@ const riverName = river ? (riverNames[river] || river) : 'Unknown River';
       align-items: center;
       justify-content: center;
       height: 100vh;
-      color: #ff6b6b;
-      font-size: 18px;
+      color: #EF4444;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
     }
   </style>
 </head>
@@ -116,86 +119,77 @@ const riverName = river ? (riverNames[river] || river) : 'Unknown River';
         const maxDate = new Date(Math.max(...chartData.x.map(d => new Date(d).getTime())));
         const now = new Date();
         const latestDate = maxDate > now ? maxDate : now;
-        
+
         const oneWeekAgo = new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000);
         const initialStart = oneWeekAgo < minDate ? minDate : oneWeekAgo;
-        
+
         const layout = {
-        title: { 
-          text: '',
-          font: { color: '#e8eaed' }
-        },
-        xaxis: { 
-          title: 'Date & Time (UTC)',
-          color: '#bdbdbd',
-          gridcolor: '#505459',
-          range: [initialStart.toISOString(), latestDate.toISOString()],
-        },
-        yaxis: { 
-          title: 'Water Level (cm)',
-          color: '#bdbdbd',
-          gridcolor: '#505459',
-        },
-        plot_bgcolor: 'rgba(32, 32, 33, 0.8)',
-        paper_bgcolor: '#202021',
-        font: { color: '#bdbdbd' },
-        margin: { l: 60, r: 30, t: 30, b: 60 },
-        hovermode: 'closest',
-        dragmode: 'pan',
-        autosize: true
-      };
-
-      const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false,
-        scrollZoom: true,
-        doubleClick: 'reset',
-        modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-        toImageButtonOptions: {
-          format: 'png',
-          filename: 'water_level_chart',
-          height: 600,
-          width: 1200,
-          scale: 2
-        }
-      };
-
-      Plotly.newPlot('plotly-chart', [chartData], layout, config);
-
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        Plotly.Plots.resize('plotly-chart');
-      });
-
-      // Enforce date range limits
-      const chartDiv = document.getElementById('plotly-chart');
-      chartDiv.on('plotly_relayout', function(eventData) {
-        if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
-          const newStart = new Date(eventData['xaxis.range[0]']);
-          const newEnd = new Date(eventData['xaxis.range[1]']);
-          
-          let needsUpdate = false;
-          const updates = {};
-          
-          if (newStart < minDate) {
-            updates['xaxis.range[0]'] = minDate.toISOString();
-            needsUpdate = true;
+          title: { text: '' },
+          xaxis: {
+            title: { text: 'Date & Time (UTC)', font: { family: 'Inter, sans-serif', size: 12, color: '#64748B' } },
+            color: '#64748B',
+            gridcolor: 'rgba(30, 41, 59, 0.5)',
+            linecolor: 'rgba(30, 41, 59, 0.8)',
+            range: [initialStart.toISOString(), latestDate.toISOString()],
+            tickfont: { family: 'JetBrains Mono, monospace', size: 10, color: '#64748B' }
+          },
+          yaxis: {
+            title: { text: 'Water Level (cm)', font: { family: 'Inter, sans-serif', size: 12, color: '#64748B' } },
+            color: '#64748B',
+            gridcolor: 'rgba(30, 41, 59, 0.5)',
+            linecolor: 'rgba(30, 41, 59, 0.8)',
+            tickfont: { family: 'JetBrains Mono, monospace', size: 10, color: '#64748B' }
+          },
+          plot_bgcolor: 'rgba(17, 24, 39, 0.5)',
+          paper_bgcolor: '#0A0E17',
+          font: { family: 'Inter, sans-serif', color: '#E2E8F0' },
+          margin: { l: 60, r: 30, t: 30, b: 60 },
+          hovermode: 'closest',
+          dragmode: 'pan',
+          autosize: true,
+          hoverlabel: {
+            bgcolor: '#161F30',
+            bordercolor: 'rgba(6, 182, 212, 0.3)',
+            font: { family: 'JetBrains Mono, monospace', size: 12, color: '#E2E8F0' }
           }
-          
-          if (newEnd > latestDate) {
-            updates['xaxis.range[1]'] = latestDate.toISOString();
-            needsUpdate = true;
+        };
+
+        const config = {
+          responsive: true,
+          displayModeBar: true,
+          displaylogo: false,
+          scrollZoom: true,
+          doubleClick: 'reset',
+          modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+          toImageButtonOptions: {
+            format: 'png',
+            filename: 'water_level_chart',
+            height: 600,
+            width: 1200,
+            scale: 2
           }
-          
-          if (needsUpdate) {
-            Plotly.relayout('plotly-chart', updates);
+        };
+
+        Plotly.newPlot('plotly-chart', [chartData], layout, config);
+
+        window.addEventListener('resize', () => {
+          Plotly.Plots.resize('plotly-chart');
+        });
+
+        const chartDiv = document.getElementById('plotly-chart');
+        chartDiv.on('plotly_relayout', function(eventData) {
+          if (eventData['xaxis.range[0]'] && eventData['xaxis.range[1]']) {
+            const newStart = new Date(eventData['xaxis.range[0]']);
+            const newEnd = new Date(eventData['xaxis.range[1]']);
+            let needsUpdate = false;
+            const updates = {};
+            if (newStart < minDate) { updates['xaxis.range[0]'] = minDate.toISOString(); needsUpdate = true; }
+            if (newEnd > latestDate) { updates['xaxis.range[1]'] = latestDate.toISOString(); needsUpdate = true; }
+            if (needsUpdate) { Plotly.relayout('plotly-chart', updates); }
           }
-        }
-      });
+        });
       }
 
-      // Start initialization
       initChart();
     </script>
   ) : (

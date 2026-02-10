@@ -1,255 +1,118 @@
 ---
-// Water ripple surface Three.js background component
+// Animated tech background - data stream visualization
 ---
 
-<div id="river-animation-container" class="fixed inset-0 -z-10"></div>
+<div id="tech-bg" class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+  <!-- Animated circuit-like SVG layers -->
+  <svg class="data-layer data-layer-1" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="stream1" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="rgba(6,182,212,0)" />
+        <stop offset="50%" stop-color="rgba(6,182,212,0.12)" />
+        <stop offset="100%" stop-color="rgba(6,182,212,0)" />
+      </linearGradient>
+    </defs>
+    <g fill="none" stroke-linecap="round">
+      <path d="M-100 300 L200 300 L220 280 L400 280 L420 300 L700 300 L720 320 L900 320 L920 300 L1300 300" stroke="url(#stream1)" stroke-width="1" />
+      <path d="M-100 500 L150 500 L170 480 L350 480 L370 500 L650 500 L670 520 L850 520 L870 500 L1300 500" stroke="rgba(6,182,212,0.06)" stroke-width="0.8" />
+      <path d="M-100 200 L250 200 L270 220 L450 220 L470 200 L750 200 L770 180 L950 180 L970 200 L1300 200" stroke="rgba(6,182,212,0.04)" stroke-width="0.6" />
+    </g>
+  </svg>
 
-<script>
-  import * as THREE from 'three';
+  <svg class="data-layer data-layer-2" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <g fill="none" stroke-linecap="round">
+      <path d="M-100 400 L100 400 L120 380 L300 380 L320 400 L600 400 L620 420 L800 420 L820 400 L1300 400" stroke="rgba(16,185,129,0.06)" stroke-width="0.8" />
+      <path d="M-100 600 L200 600 L220 580 L400 580 L420 600 L700 600 L720 620 L900 620 L920 600 L1300 600" stroke="rgba(16,185,129,0.04)" stroke-width="0.6" />
+    </g>
+  </svg>
 
-  // Wait for DOM to be ready
-  if (typeof window !== 'undefined') {
-    const container = document.getElementById('river-animation-container');
-    if (!container) throw new Error('Canvas container not found');
+  <!-- Floating data nodes -->
+  <svg class="data-layer data-layer-3" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="200" cy="300" r="2" fill="rgba(6,182,212,0.2)">
+      <animate attributeName="opacity" values="0.1;0.4;0.1" dur="3s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="500" cy="450" r="1.5" fill="rgba(6,182,212,0.15)">
+      <animate attributeName="opacity" values="0.1;0.3;0.1" dur="4s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="800" cy="250" r="2" fill="rgba(6,182,212,0.2)">
+      <animate attributeName="opacity" values="0.1;0.5;0.1" dur="2.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="1000" cy="500" r="1.5" fill="rgba(16,185,129,0.15)">
+      <animate attributeName="opacity" values="0.1;0.3;0.1" dur="3.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="350" cy="600" r="1.5" fill="rgba(6,182,212,0.15)">
+      <animate attributeName="opacity" values="0.1;0.35;0.1" dur="4.5s" repeatCount="indefinite" />
+    </circle>
+  </svg>
 
-    // Scene setup
-    const scene = new THREE.Scene();
-    scene.background = null; // Transparent background to show mesh behind
-    scene.fog = new THREE.Fog(0x202021, 10, 60);
-
-    // Camera
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(0, 15, 30);
-    camera.lookAt(0, 0, 0);
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio * 2, 4));
-    container.appendChild(renderer.domElement);
-
-    // Teal color variants
-    const tealColors = [
-      0x3395ad, // primaryTeal
-      0x66cbea, // primaryBlue (lighter)
-      0x2a7a8f, // darker teal
-      0x4dafca, // medium teal
-    ];
-
-    // Create water surface with sphere particles using instancing
-    const particleCount = 60000;
-    const width = 200; // Wider to cover full viewport width at distance
-    const depth = 100;
-
-    // Sphere geometry for particles
-    const sphereGeometry = new THREE.SphereGeometry(0.08, 6, 6);
-    const sphereMaterial = new THREE.MeshBasicMaterial({
-      transparent: true,
-      opacity: 0.3,
-      blending: THREE.AdditiveBlending,
-      fog: true
-    });
-
-    const particles = new THREE.InstancedMesh(sphereGeometry, sphereMaterial, particleCount);
-    
-    // Store particle data
-    const particleData = [];
-    const dummy = new THREE.Object3D();
-    const colorAttribute = new Float32Array(particleCount * 3);
-
-    for (let i = 0; i < particleCount; i++) {
-      // Position
-      const x = (Math.random() - 0.5) * width;
-      const y = 0;
-      const z = (Math.random() - 0.5) * depth;
-      
-      dummy.position.set(x, y, z);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      particles.setMatrixAt(i, dummy.matrix);
-      
-      // Color - random teal variant
-      const color = new THREE.Color(tealColors[Math.floor(Math.random() * tealColors.length)]);
-      colorAttribute[i * 3] = color.r;
-      colorAttribute[i * 3 + 1] = color.g;
-      colorAttribute[i * 3 + 2] = color.b;
-      
-      // Store base position and flow speed
-      particleData.push({ 
-        x, 
-        z,
-        flowSpeed: 0.0125 + Math.random() * 0.025 // Vary flow speed (25% of original)
-      });
-    }
-
-    // Set colors
-    sphereGeometry.setAttribute('color', new THREE.BufferAttribute(colorAttribute, 3));
-    sphereMaterial.vertexColors = true;
-    
-    particles.instanceMatrix.needsUpdate = true;
-    scene.add(particles);
-
-    // Click ripple effect
-    const clickRipple = { x: 0, z: 0, strength: 0 };
-
-    // Raycaster for accurate 3D position from click
-    const raycaster = new THREE.Raycaster();
-    const waterPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Y=0 plane
-
-    window.addEventListener('click', (event) => {
-      // Convert mouse position to normalized device coordinates (-1 to +1)
-      const mouse = new THREE.Vector2();
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      
-      // Cast ray from camera through mouse position
-      raycaster.setFromCamera(mouse, camera);
-      
-      // Find intersection with water plane (Y=0)
-      const intersectPoint = new THREE.Vector3();
-      raycaster.ray.intersectPlane(waterPlane, intersectPoint);
-      
-      // Create ripple at exact intersection point
-      if (intersectPoint) {
-        clickRipple.x = intersectPoint.x;
-        clickRipple.z = intersectPoint.z;
-        clickRipple.strength = 1.5;
-      }
-    });
-
-    // Automated flow ripples
-    const flowRipples = [];
-    const maxFlowRipples = 5;
-    
-    function createFlowRipple() {
-      flowRipples.push({
-        x: (Math.random() - 0.5) * width * 0.9,
-        z: depth / 2, // Start at back
-        strength: 0.4,
-        speed: 0.15
-      });
-      
-      // Remove oldest if too many
-      if (flowRipples.length > maxFlowRipples) {
-        flowRipples.shift();
-      }
-    }
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    // Animation
-    const clock = new THREE.Clock();
-    
-    function animate() {
-      requestAnimationFrame(animate);
-      
-      const elapsedTime = clock.getElapsedTime();
-      
-      // Create new flow ripples periodically (more random, less frequent)
-      if (Math.random() < 0.005) { // ~0.5% chance per frame
-        createFlowRipple();
-      }
-      
-      // Update flow ripples
-      for (let i = flowRipples.length - 1; i >= 0; i--) {
-        const ripple = flowRipples[i];
-        ripple.z -= ripple.speed; // Move forward
-        ripple.strength *= 0.98; // Decay slower than mouse ripple
-        
-        // Remove if too weak or too close
-        if (ripple.strength < 0.1 || ripple.z < -depth / 2) {
-          flowRipples.splice(i, 1);
-        }
-      }
-      
-      // Decay click ripple (slower decay for longer effect)
-      clickRipple.strength *= 0.98;
-
-      // Update sphere positions for water ripple effect and flow
-      for (let i = 0; i < particleCount; i++) {
-        const data = particleData[i];
-        const x = data.x;
-        
-        // Flow forwards (decrease z position towards camera)
-        data.z -= data.flowSpeed;
-        
-        // Reset to back when too close
-        if (data.z < -depth / 2) {
-          data.z = depth / 2;
-        }
-        
-        const z = data.z;
-        
-        // Multiple wave patterns for realistic water
-        const wave1 = Math.sin(x * 0.1 + elapsedTime * 0.5) * 0.5;
-        const wave2 = Math.sin(z * 0.15 - elapsedTime * 0.3) * 0.5;
-        const wave3 = Math.sin((x + z) * 0.1 + elapsedTime * 0.4) * 0.3;
-        
-        // Click ripple effect (stone impact with surface tension)
-        const dx = x - clickRipple.x;
-        const dz = z - clickRipple.z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        
-        // Create sharp impact hole at center, then expanding rings
-        const impactRadius = 3; // Small concentrated impact area
-        const centerHole = distance < impactRadius ? 
-                          -Math.cos(distance / impactRadius * Math.PI) * 
-                          Math.exp(-distance * 0.5) * 
-                          clickRipple.strength * 2 : 0;
-        
-        // Expanding ripple rings from impact
-        const rippleWave = Math.sin(distance * 0.4 - elapsedTime * 0.5) * 
-                          Math.exp(-distance * 0.15) * 
-                          clickRipple.strength * 2.5;
-        
-        const clickRippleEffect = centerHole + rippleWave;
-        
-        // Flow ripples effect (slower, smoother)
-        let flowRippleEffect = 0;
-        for (const ripple of flowRipples) {
-          const fdx = x - ripple.x;
-          const fdz = z - ripple.z;
-          const fdist = Math.sqrt(fdx * fdx + fdz * fdz);
-          flowRippleEffect += Math.sin(fdist * 0.3 - elapsedTime * 1) * 
-                             Math.exp(-fdist * 0.1) * 
-                             ripple.strength * 1.5;
-        }
-        
-        // Combine waves for Y position
-        const y = wave1 + wave2 + wave3 + clickRippleEffect + flowRippleEffect;
-        
-        // Update instance matrix
-        dummy.position.set(x, y, z);
-        dummy.updateMatrix();
-        particles.setMatrixAt(i, dummy.matrix);
-      }
-      
-      particles.instanceMatrix.needsUpdate = true;
-      
-      // Slow camera rotation for dynamic view
-      camera.position.x = Math.sin(elapsedTime * 0.1) * 5;
-      camera.position.z = 30 + Math.cos(elapsedTime * 0.1) * 5;
-      camera.lookAt(0, 0, 0);
-
-      renderer.render(scene, camera);
-    }
-
-    animate();
-  }
-</script>
+  <!-- Grid overlay -->
+  <div class="grid-overlay"></div>
+</div>
 
 <style>
-  #tron-canvas-container {
-    pointer-events: none;
+  #tech-bg {
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(6, 182, 212, 0.02) 0%, transparent 40%);
+  }
+
+  .data-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .data-layer-1 {
+    animation: layerShift1 20s ease-in-out infinite;
+  }
+
+  .data-layer-2 {
+    animation: layerShift2 25s ease-in-out infinite;
+  }
+
+  .data-layer-3 {
+    animation: layerShift3 15s ease-in-out infinite;
+  }
+
+  @keyframes layerShift1 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(15px); }
+  }
+
+  @keyframes layerShift2 {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(-10px); }
+  }
+
+  @keyframes layerShift3 {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .data-layer path {
+    stroke-dasharray: 12 8;
+    animation: dataStream 3s linear infinite;
+  }
+
+  .data-layer-2 path {
+    stroke-dasharray: 8 12;
+    animation-duration: 5s;
+    animation-direction: reverse;
+  }
+
+  @keyframes dataStream {
+    to { stroke-dashoffset: -40; }
+  }
+
+  .grid-overlay {
+    position: absolute;
+    inset: 0;
+    opacity: 0.015;
+    background-image:
+      linear-gradient(rgba(6, 182, 212, 1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(6, 182, 212, 1) 1px, transparent 1px);
+    background-size: 80px 80px;
   }
 </style>
