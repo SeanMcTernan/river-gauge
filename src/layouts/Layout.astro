@@ -1,20 +1,12 @@
 ---
-import { getImage } from "astro:assets";
 import BaseHead from "../components/BaseHead.astro";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import backgroundImage from "../assets/images/logo-bg.svg";
 
 export interface Props {
   pageTitle: string;
   pageDescription: string;
 }
-
-// Optimize the background image
-const optimizedBackground = await getImage({
-  src: backgroundImage,
-  format: "webp",
-});
 
 const { pageTitle, pageDescription } = Astro.props;
 ---
@@ -24,14 +16,11 @@ const { pageTitle, pageDescription } = Astro.props;
   <head>
     <BaseHead title={pageTitle} description={pageDescription} />
   </head>
-  <body
-    class="h-full flex flex-col text-primaryWhite"
-    style={`background-image: url(${optimizedBackground.src}); background-size: cover; background-repeat: no-repeat; background-attachment: fixed; background-position: center; overscroll-behavior: none;`}
-  >
-    <Header class="mt-auto" />
+  <body class="h-full flex flex-col text-text bg-surface noise">
+    <Header />
     <main class="flex-grow">
       <slot />
     </main>
-    <Footer class="mt-auto" />
+    <Footer />
   </body>
 </html>
